@@ -72,8 +72,8 @@ Build	Maven
 Git	GitHub
 ```
 
-TUẦN 1 — Thiết kế + Socket cơ bản
-🎯 Mục tiêu
+## TUẦN 1 — Thiết kế + Socket cơ bản
+### Mục tiêu
 Cuối tuần phải đạt:
 ```text
           ┌───────────┐
@@ -227,8 +227,8 @@ PC01 connected
 PC02 connected
 Nếu tuần 1 chưa đạt cái này thì tuần 2 chưa làm chức năng khác.
 ________________________________________
-III. TUẦN 2 — Database + Login + Online/Offline
-🎯 Mục tiêu
+## TUẦN 2 — Database + Login + Online/Offline
+### Mục tiêu
 Admin đăng nhập được và nhìn thấy máy.
 ```text
 Login
@@ -340,9 +340,9 @@ Danh sách máy
 Online / Offline
 ```
 ________________________________________
-IV. TUẦN 3 — CPU/RAM/Disk + Process
-```text
- Mục tiêu
+## TUẦN 3 — CPU/RAM/Disk + Process
+### Mục tiêu
+ ```text
 Click PC01:
 CPU: 35%
 RAM: 62%
@@ -431,8 +431,8 @@ Process
 Kill process
 ```
 ________________________________________
-V. TUẦN 4 — Screenshot + Monitor nhiều máy
-🎯 Mục tiêu
+## TUẦN 4 — Screenshot + Monitor nhiều máy
+### Mục tiêu
 Đây là tuần quan trọng.
 Admin có thể xem:
 ```text
@@ -512,8 +512,8 @@ Phải xem được:
 ít nhất 2–3 máy cùng lúc.
 Nếu được 4–5 máy càng tốt.
 ________________________________________
-VI. TUẦN 5 — Control + Message + File + Broadcast
-🎯 Mục tiêu
+## TUẦN 5 — Control + Message + File + Broadcast
+### Mục tiêu
 Hoàn thiện phần điều khiển cơ bản.
 ________________________________________
 Ngày 1 — Lock
@@ -590,9 +590,9 @@ Các chức năng phải chạy:
 ✓ File
 ```
 ________________________________________
-VII. TUẦN 6 — Remote Keyboard + Mouse + Security
+## TUẦN 6 — Remote Keyboard + Mouse + Security
+### Mục tiêu
 Đây là tuần khó nhất.
-🎯 Mục tiêu
 ```text
 Admin:
 Xem màn hình PC01
@@ -693,8 +693,8 @@ keyboard
 và đường truyền đã có TLS.
 ```
 ________________________________________
-VIII. TUẦN 7 — Tích hợp + sửa lỗi + báo cáo
-⚠️ TUẦN NÀY KHÔNG ĐƯỢC BẮT ĐẦU CHỨC NĂNG LỚN MỚI.
+## TUẦN 7 — Tích hợp + sửa lỗi + báo cáo
+### TUẦN NÀY KHÔNG ĐƯỢC BẮT ĐẦU CHỨC NĂNG LỚN MỚI.
 ________________________________________
 Ngày 1 — Test toàn hệ thống
 ```text
@@ -815,7 +815,7 @@ Slide.pptx
 ```
 ________________________________________
 
-X. Mốc kiểm tra để không bị trễ
+## Mốc kiểm tra để không bị trễ
 ```text
 Mình sẽ đặt 5 mốc cứng:
 🔴 Cuối tuần 1
@@ -847,7 +847,7 @@ TLS
 Nếu tới cuối tuần 5 mà remote control chưa làm được thì vẫn ưu tiên sửa các chức năng bắt buộc đã có, không được vì remote control mà làm hỏng toàn bộ hệ thống.
 ```
 ________________________________________
-XI. Cấu trúc project mình khuyên dùng
+## Cấu trúc project mình khuyên dùng
 Nếu dùng Maven, có thể làm dạng:
 ```text
 computer-room-management/
@@ -887,7 +887,7 @@ computer-room-management/
 common rất quan trọng vì 3 người đều dùng chung protocol.
 ```
 ________________________________________
-XII. Cách làm Git để 3 người không đạp code nhau
+## Cách làm Git để 3 người không đạp code nhau
 Ví dụ:
 ```text
 main
