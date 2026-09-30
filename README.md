@@ -55,6 +55,7 @@ ________________________________________
 •  Machine Client/Agent = chương trình chạy trên từng máy phòng máy.
 •  Database = lưu tài khoản, máy, lịch sử.
 ## các công nghệ dùng trong đồ án:
+```text
 Thành phần	Công nghệ
 Admin Client	JavaFX
 Machine Client	JavaFX
@@ -69,7 +70,7 @@ Screenshot	java.awt.Robot
 Remote keyboard/mouse	java.awt.Robot
 Build	Maven
 Git	GitHub
-
+```
 
 TUẦN 1 — Thiết kế + Socket cơ bản
 🎯 Mục tiêu
@@ -87,6 +88,7 @@ Admin và Machine đều kết nối được Server.
 ________________________________________
 Ngày 1 
 Thống nhất kiến trúc.
+```text
 1. Architecture
 Admin
   ↓
@@ -118,9 +120,11 @@ Send system info
 Receive command
 Execute command
 Send screenshot
+```
 ________________________________________
 Ngày 2 — Thiết kế protocol
 Thống nhất message.
+```text
 Ví dụ:
 {
   "type": "COMMAND",
@@ -142,6 +146,7 @@ MESSAGE
 FILE
 BROADCAST
 REMOTE_INPUT
+```
 ________________________________________
 Ngày 3 — GitHub
 Tạo repository:
@@ -202,9 +207,11 @@ Login GUI sơ bộ
 ```
 ________________________________________
 Ngày 6 — Ghép
+```text
 Test:
 Machine → Server
 Admin → Server
+```
 ________________________________________
 Ngày 7 — Deadline
 Bắt buộc chạy được:
@@ -238,6 +245,7 @@ PC03 OFFLINE
 ```
 ________________________________________
 Ngày 1 — Database
+```text
 Người 1 tạo:
 users
 id
@@ -266,6 +274,7 @@ admin_id
 command_type
 status
 created_at
+```
 ________________________________________
 Ngày 2 — Authentication
 Login:
@@ -285,6 +294,7 @@ OK
 Password lưu dạng hash, không lưu plaintext.
 ________________________________________
 Ngày 3 — Machine registration
+```text
 Machine gửi:
 {
   "type": "MACHINE_CONNECT",
@@ -295,6 +305,7 @@ Machine gửi:
 }
 Server cập nhật:
 PC01 = ONLINE
+```
 ________________________________________
 Ngày 4 — Heartbeat
 Machine cứ vài giây gửi:
@@ -330,7 +341,8 @@ Online / Offline
 ```
 ________________________________________
 IV. TUẦN 3 — CPU/RAM/Disk + Process
-🎯 Mục tiêu
+```text
+ Mục tiêu
 Click PC01:
 CPU: 35%
 RAM: 62%
@@ -338,6 +350,7 @@ Disk: 45%
 OS: Windows 11
 Hostname: PC01
 và xem process.
+```
 ________________________________________
 Ngày 1 — Protocol
 Người 1 thêm:
@@ -357,6 +370,7 @@ SystemInfo systemInfo = new SystemInfo();
 Sau đó chuyển thành JSON.
 ________________________________________
 Ngày 3–4 — Process
+```text
 Lấy:
 PID
 Name
@@ -368,6 +382,7 @@ PID      NAME
 1200     chrome.exe
 2330     java.exe
 4532     Code.exe
+```
 ________________________________________
 Ngày 4–5 — Kill process
 Admin:
@@ -564,6 +579,7 @@ Làm trước file nhỏ.
 ```
 ________________________________________
 Ngày 7 — Deadline
+```text
 Các chức năng phải chạy:
 ✓ Lock
 ✓ Unlock
@@ -572,6 +588,7 @@ Các chức năng phải chạy:
 ✓ Message
 ✓ Broadcast
 ✓ File
+```
 ________________________________________
 VII. TUẦN 6 — Remote Keyboard + Mouse + Security
 Đây là tuần khó nhất.
@@ -640,6 +657,7 @@ route to machine
 ```
 ________________________________________
 Ngày 5–6 — TLS
+```text
 Chuyển:
 Socket
 sang:
@@ -647,8 +665,10 @@ SSLSocket
 SSLServerSocket
 Kiểm tra:
 Admin ← TLS → Server ← TLS → Machine
+```
 ________________________________________
 Ngày 6 — Authorization
+```text
 Ví dụ:
 role = ADMIN
 mới được:
@@ -656,6 +676,7 @@ KILL_PROCESS
 SHUTDOWN
 REMOTE_INPUT
 Machine thường không được gửi command nguy hiểm ngược lại.
+```
 ________________________________________
 Ngày 7 — Deadline
 Demo:
