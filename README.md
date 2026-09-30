@@ -1,8 +1,11 @@
-Đồ án : ứng dụng quản lý phòng máy
+# Đồ án : ứng dụng quản lý phòng máy
+## thành viên:
 -người 1:duy
 -người 2:danh
 -người 3: trí
-1/sơ đồ luồng hoạt động:
+
+## sơ đồ luồng hoạt động:
+```text
                   ┌─────────────────────┐
                   │      DATABASE       │
                   │    PostgreSQL       │
@@ -32,11 +35,13 @@
     │ - Monitor       │               │ - Bị điều khiển │
     │ - Control       │               │ - Nhận lệnh     │
     │ - Broadcast     │               │ - Gửi màn hình  │
+    └─────────────────┘               └─────────────────┘
+```
 •  Server = trung tâm giao thông.
 •  Admin = người quản lý.
 •  Machine Client/Agent = chương trình chạy trên từng máy phòng máy.
 •  Database = lưu tài khoản, máy, lịch sử.
-2/các công nghệ dùng trong đồ án:
+## các công nghệ dùng trong đồ án:
 Thành phần	Công nghệ
 Admin Client	JavaFX
 Machine Client	JavaFX
@@ -61,13 +66,12 @@ Cuối tuần phải đạt:
           └─────┬─────┘
              ↑  │  ↓
        ┌─────┘  │  └─────┐
-       │         │        │
+       │        │        │
     ADMIN     MACHINE   MACHINE
 Admin và Machine đều kết nối được Server.
 ________________________________________
-Ngày 1 — Cả nhóm
+Ngày 1 
 Thống nhất kiến trúc.
-Vẽ:
 1. Architecture
 Admin
   ↓
@@ -101,7 +105,6 @@ Execute command
 Send screenshot
 ________________________________________
 Ngày 2 — Thiết kế protocol
-Đây là việc rất quan trọng.
 Thống nhất message.
 Ví dụ:
 {
