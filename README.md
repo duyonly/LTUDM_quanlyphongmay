@@ -4,6 +4,19 @@
 -người 2:danh
 -người 3: trí
 
+## Bảng công việc 7 tuần cho 3 người
+```text
+Tuần  Người 1 — Server/DB   	            Người 2 — Machine	             Người 3 — Admin
+1	  TCP Server + Protocol  	            Connect + Heartbeat	             JavaFX + Connect
+2	  DB + Login + Session	                Registration + Online	         Login + Dashboard
+3	  System/Process command	            CPU/RAM/Disk/Process	         System + Process UI
+4	  Screenshot routing    	            Screenshot	Monitor              Grid
+5     Control commands      	            Lock/Shutdown/Message/File  	 Control UI/Broadcast     
+6	  TLS + Authorization + Input routing	Mouse/Keyboard	                 Remote Control UI
+7	Test + Bug + Report	Test + Bug + Report	UI + Test + Slide
+```
+________________________________________
+
 ## sơ đồ luồng hoạt động:
 ```text
                   ┌─────────────────────┐
@@ -61,6 +74,7 @@ Git	GitHub
 TUẦN 1 — Thiết kế + Socket cơ bản
 🎯 Mục tiêu
 Cuối tuần phải đạt:
+```text
           ┌───────────┐
           │  SERVER   │
           └─────┬─────┘
@@ -68,6 +82,7 @@ Cuối tuần phải đạt:
        ┌─────┘  │  └─────┐
        │        │        │
     ADMIN     MACHINE   MACHINE
+```
 Admin và Machine đều kết nối được Server.
 ________________________________________
 Ngày 1 
@@ -130,6 +145,7 @@ REMOTE_INPUT
 ________________________________________
 Ngày 3 — GitHub
 Tạo repository:
+```text
 computer-room-management
 │
 ├── server
@@ -138,6 +154,7 @@ computer-room-management
 ├── common
 ├── database
 └── docs
+```
 common chứa:
 CommandType
 Message
@@ -146,6 +163,7 @@ MachineInfo
 ________________________________________
 Ngày 4–5 — Người 1
 Làm Server:
+```text
 ServerSocket
    ↓
 accept()
@@ -153,6 +171,7 @@ accept()
 ClientHandler
    ↓
 ClientManager
+```
 Server phải nhận nhiều connection.
 Ví dụ:
 PC01 connected
@@ -162,6 +181,7 @@ Admin connected
 ________________________________________
 Ngày 4–5 — Người 2
 Machine:
+```text
 MachineClient
     ↓
 connect("server", port)
@@ -169,14 +189,17 @@ connect("server", port)
 send MACHINE_CONNECT
     ↓
 heartbeat
+```
 ________________________________________
 Ngày 4–5 — Người 3
 Admin:
+```text
 AdminClient
     ↓
 connect Server
     ↓
 Login GUI sơ bộ
+```
 ________________________________________
 Ngày 6 — Ghép
 Test:
@@ -185,10 +208,12 @@ Admin → Server
 ________________________________________
 Ngày 7 — Deadline
 Bắt buộc chạy được:
-Server
+```text
+   Server
  ↑       ↑
 Admin   PC01
         PC02
+```
 Server biết:
 Admin connected
 PC01 connected
@@ -198,6 +223,7 @@ ________________________________________
 III. TUẦN 2 — Database + Login + Online/Offline
 🎯 Mục tiêu
 Admin đăng nhập được và nhìn thấy máy.
+```text
 Login
  ↓
 Server
@@ -209,6 +235,7 @@ Dashboard
 PC01 ONLINE
 PC02 ONLINE
 PC03 OFFLINE
+```
 ________________________________________
 Ngày 1 — Database
 Người 1 tạo:
@@ -242,6 +269,7 @@ created_at
 ________________________________________
 Ngày 2 — Authentication
 Login:
+```text
 Admin
  ↓
 username/password
@@ -253,6 +281,7 @@ Database
 verify
  ↓
 OK
+```
 Password lưu dạng hash, không lưu plaintext.
 ________________________________________
 Ngày 3 — Machine registration
@@ -277,6 +306,7 @@ ONLINE → OFFLINE
 ________________________________________
 Ngày 5–6 — Người 3 làm Dashboard
 Giao diện:
+```text
 ┌────────────────────────────────────┐
 │       QUẢN LÝ PHÒNG MÁY            │
 ├────────────────────────────────────┤
@@ -285,9 +315,11 @@ Giao diện:
 │ 🔴 PC03     OFFLINE                │
 │ 🟢 PC04     ONLINE                 │
 └────────────────────────────────────┘
+```
 ________________________________________
 Ngày 7 — Deadline
 Demo:
+```text
 Login
  ↓
 Dashboard
@@ -295,6 +327,7 @@ Dashboard
 Danh sách máy
  ↓
 Online / Offline
+```
 ________________________________________
 IV. TUẦN 3 — CPU/RAM/Disk + Process
 🎯 Mục tiêu
@@ -338,6 +371,7 @@ PID      NAME
 ________________________________________
 Ngày 4–5 — Kill process
 Admin:
+```text
 Chọn chrome.exe
        ↓
 [Kill]
@@ -347,9 +381,11 @@ Server
 Machine
        ↓
 ProcessManager
+```
 ________________________________________
 Ngày 5–6 — Admin UI
 Machine Detail:
+```text
 ┌──────────────────────────────┐
 │ PC01                         │
 │                              │
@@ -364,9 +400,11 @@ Machine Detail:
 │                              │
 │ [Kill Process]               │
 └──────────────────────────────┘
+```
 ________________________________________
 Ngày 7 — Deadline
 Phải demo được:
+```text
 Admin
  ↓
 PC01
@@ -376,11 +414,13 @@ CPU/RAM/Disk
 Process
  ↓
 Kill process
+```
 ________________________________________
 V. TUẦN 4 — Screenshot + Monitor nhiều máy
 🎯 Mục tiêu
 Đây là tuần quan trọng.
 Admin có thể xem:
+```text
 ┌─────────────┐ ┌─────────────┐
 │    PC01     │ │    PC02     │
 │             │ │             │
@@ -392,9 +432,11 @@ Admin có thể xem:
 │             │ │             │
 │  SCREENSHOT │ │  SCREENSHOT │
 └─────────────┘ └─────────────┘
+```
 ________________________________________
 Ngày 1 — Screenshot Machine
 Người 2 dùng:
+```text
 Robot
 chụp màn hình.
 Sau đó:
@@ -405,6 +447,7 @@ BufferedImage
 JPEG
  ↓
 byte[]
+```
 ________________________________________
 Ngày 2 — Protocol
 Người 1 thiết kế:
@@ -415,6 +458,7 @@ Nếu muốn đơn giản để demo, có thể Base64; nếu muốn hiệu qu�
 ________________________________________
 Ngày 3–4 — Server
 Server:
+```text
 Admin
  ↓
 SCREENSHOT PC01
@@ -428,16 +472,19 @@ Screenshot
 Server
  ↓
 Admin
+```
 ________________________________________
 Ngày 4–5 — Admin
 Người 3 làm:
 MonitorGrid
 Ví dụ:
+```text
 GridPane
  ├── PC01 ImageView
  ├── PC02 ImageView
  ├── PC03 ImageView
  └── PC04 ImageView
+ ```
 ________________________________________
 Ngày 6 — Refresh
 Ví dụ:
@@ -455,6 +502,7 @@ VI. TUẦN 5 — Control + Message + File + Broadcast
 Hoàn thiện phần điều khiển cơ bản.
 ________________________________________
 Ngày 1 — Lock
+```text
 Admin
  ↓
 LOCK PC01
@@ -464,6 +512,7 @@ Server
 PC01
  ↓
 Lock
+```
 ________________________________________
 Ngày 2 — Unlock
 Tương tự:
@@ -478,25 +527,30 @@ Ngày 4 — Message
 Admin nhập:
 Máy sẽ được bảo trì lúc 18h.
 Machine nhận:
+```text
 ┌────────────────────────┐
 │ THÔNG BÁO              │
 │                        │
 │ Máy sẽ được bảo trì    │
 │ lúc 18h.               │
 └────────────────────────┘
+```
 ________________________________________
 Ngày 5 — Broadcast
 Admin:
 Gửi tất cả
+```text
 Server:
           ┌── PC01
           ├── PC02
 Admin → Server ── PC03
           ├── PC04
           └── PC05
+```
 ________________________________________
 Ngày 6 — File
 Đơn giản hóa:
+```text
 Admin
  ↓
 Select File
@@ -507,6 +561,7 @@ Machine
  ↓
 Save
 Làm trước file nhỏ.
+```
 ________________________________________
 Ngày 7 — Deadline
 Các chức năng phải chạy:
@@ -521,6 +576,7 @@ ________________________________________
 VII. TUẦN 6 — Remote Keyboard + Mouse + Security
 Đây là tuần khó nhất.
 🎯 Mục tiêu
+```text
 Admin:
 Xem màn hình PC01
        ↓
@@ -530,8 +586,10 @@ PC01 nhận
        ↓
 thực hiện
 và keyboard.
+```
 ________________________________________
 Ngày 1 — Input Protocol
+```text
 Ví dụ mouse:
 {
   "type": "INPUT",
@@ -551,6 +609,7 @@ Keyboard:
   "inputType": "KEY_DOWN",
   "key": "A"
 }
+```
 ________________________________________
 Ngày 2–3 — Machine
 Người 2 xử lý bằng Robot.
@@ -570,6 +629,7 @@ Sau đó gửi Server.
 ________________________________________
 Ngày 4–5 — Server
 Người 1:
+```text
 INPUT
  ↓
 validate
@@ -577,6 +637,7 @@ validate
 check permission
  ↓
 route to machine
+```
 ________________________________________
 Ngày 5–6 — TLS
 Chuyển:
@@ -598,6 +659,7 @@ Machine thường không được gửi command nguy hiểm ngược lại.
 ________________________________________
 Ngày 7 — Deadline
 Demo:
+```text
 Login
  ↓
 chọn PC01
@@ -608,11 +670,13 @@ mouse
  ↓
 keyboard
 và đường truyền đã có TLS.
+```
 ________________________________________
 VIII. TUẦN 7 — Tích hợp + sửa lỗi + báo cáo
 ⚠️ TUẦN NÀY KHÔNG ĐƯỢC BẮT ĐẦU CHỨC NĂNG LỚN MỚI.
 ________________________________________
 Ngày 1 — Test toàn hệ thống
+```text
 Chạy:
 1 Server
 1 Admin
@@ -634,9 +698,11 @@ Broadcast
 File
 Remote mouse
 Remote keyboard
+```
 ________________________________________
 Ngày 2 — Test mất kết nối
 Ví dụ:
+```text
 PC01
  ↓
 disconnect
@@ -644,8 +710,10 @@ Server phải cập nhật:
 PC01 → OFFLINE
 PC01 reconnect:
 PC01 → ONLINE
+```
 ________________________________________
 Ngày 3 — Test nhiều máy
+```text
 Test:
 PC01
 PC02
@@ -658,18 +726,22 @@ Admin → PC01
 Admin → PC02
 Admin → PC03
 Không được gửi nhầm command.
+```
 ________________________________________
 Ngày 4 — Security + Database
 Kiểm tra:
+```text
 ✓ Password hash
 ✓ Login
 ✓ Authorization
 ✓ TLS
 ✓ Command log
 ✓ Session log
+```
 ________________________________________
 Ngày 5 — UI + Bug Fix
 Người 3 tập trung:
+```text
 GUI
 button
 table
@@ -684,9 +756,11 @@ Người 2:
 Machine bug
 Screenshot bug
 Control bug
+```
 ________________________________________
 Ngày 6 — Báo cáo + Slide
 Báo cáo nên có:
+```text
 1. Giới thiệu đề tài
 2. Phân tích yêu cầu
 3. Kiến trúc hệ thống
@@ -701,8 +775,10 @@ Báo cáo nên có:
 12. Kết quả
 13. Hạn chế
 14. Hướng phát triển
+```
 ________________________________________
 Ngày 7 — DEADLINE
+```text
 Không code thêm.
 Chỉ:
 Demo
@@ -715,18 +791,11 @@ README.md
 Source code
 Report.pdf
 Slide.pptx
+```
 ________________________________________
-IX. Bảng công việc 7 tuần cho 3 người
-Tuần	Người 1 — Server/DB	Người 2 — Machine	Người 3 — Admin
-1	TCP Server + Protocol	Connect + Heartbeat	JavaFX + Connect
-2	DB + Login + Session	Registration + Online	Login + Dashboard
-3	System/Process command	CPU/RAM/Disk/Process	System + Process UI
-4	Screenshot routing	Screenshot	Monitor Grid
-5	Control commands	Lock/Shutdown/Message/File	Control UI/Broadcast
-6	TLS + Authorization + Input routing	Mouse/Keyboard	Remote Control UI
-7	Test + Bug + Report	Test + Bug + Report	UI + Test + Slide
-________________________________________
+
 X. Mốc kiểm tra để không bị trễ
+```text
 Mình sẽ đặt 5 mốc cứng:
 🔴 Cuối tuần 1
 Admin ←→ Server ←→ Machine
@@ -755,9 +824,11 @@ Remote keyboard/mouse
 +
 TLS
 Nếu tới cuối tuần 5 mà remote control chưa làm được thì vẫn ưu tiên sửa các chức năng bắt buộc đã có, không được vì remote control mà làm hỏng toàn bộ hệ thống.
+```
 ________________________________________
 XI. Cấu trúc project mình khuyên dùng
 Nếu dùng Maven, có thể làm dạng:
+```text
 computer-room-management/
 │
 ├── server/
@@ -793,9 +864,11 @@ computer-room-management/
 │
 └── README.md
 common rất quan trọng vì 3 người đều dùng chung protocol.
+```
 ________________________________________
 XII. Cách làm Git để 3 người không đạp code nhau
 Ví dụ:
+```text
 main
 │
 ├── develop
@@ -812,6 +885,7 @@ git commit -m "feat: add machine heartbeat"
 git push
 Sau đó merge vào develop.
 Không cho cả 3 người sửa trực tiếp main.
+```
 ________________________________________
 
 
