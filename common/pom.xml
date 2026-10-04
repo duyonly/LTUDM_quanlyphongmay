@@ -15,5 +15,13 @@
     </parent>
 
     <artifactId>common</artifactId>
+    <dependencies>
 
+    <dependency>
+        <groupId>org.json</groupId>
+        <artifactId>json</artifactId>
+        <version>20250107</version>
+    </dependency>
+
+</dependencies>
 </project>
