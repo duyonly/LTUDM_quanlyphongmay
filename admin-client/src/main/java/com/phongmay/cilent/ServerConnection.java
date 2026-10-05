@@ -8,10 +8,15 @@ import java.io.PrintWriter;
 import java.net.Socket;
 
 public class ServerConnection {
+    // Server mà client sẽ kết nối tới.
     private final String host;
+    // Port TCP của server.
     private final int port;
+    // Socket sống của kết nối hiện tại.
     private Socket socket;
+    // Đọc dữ liệu trả về từ server.
     private BufferedReader reader;
+    // Gửi dữ liệu lên server.
     private PrintWriter writer;
 
     public ServerConnection(String host, int port) {
@@ -19,6 +24,7 @@ public class ServerConnection {
         this.port = port;
     }
 
+    // Thiết lập kết nối tới server và mở stream đọc/ghi.
     public boolean connect() throws IOException {
         if (isConnected()) {
             return true;
@@ -35,6 +41,7 @@ public class ServerConnection {
         return socket != null && socket.isConnected() && !socket.isClosed();
     }
 
+    // Gửi Request JSON tới server và chờ phản hồi Response JSON.
     public com.phongmay.cilent.Response sendRequest(com.phongmay.cilent.Request request) throws IOException {
         if (request == null) {
             throw new IllegalArgumentException("Request cannot be null");
@@ -52,6 +59,7 @@ public class ServerConnection {
         return com.phongmay.cilent.Response.fromJson(responseJson);
     }
 
+    // Gửi một chuỗi JSON thô nếu cần dùng trực tiếp.
     public void sendRaw(String json) {
         if (!isConnected()) {
             throw new IllegalStateException("Server connection is not established");
@@ -62,6 +70,7 @@ public class ServerConnection {
         writer.println(json);
     }
 
+    // Đọc một dòng JSON từ server.
     public String receiveRaw() throws IOException {
         if (!isConnected()) {
             throw new IllegalStateException("Server connection is not established");
@@ -70,6 +79,7 @@ public class ServerConnection {
         return line == null || line.isBlank() ? null : line;
     }
 
+    // Đóng kết nối an toàn sau khi không dùng nữa.
     public void close() throws IOException {
         if (reader != null) {
             reader.close();
