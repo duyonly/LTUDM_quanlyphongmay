@@ -1,4 +1,4 @@
-package com.phongmay.cilent;
+package com.phongmay.client;
 
 import java.util.UUID;
 
