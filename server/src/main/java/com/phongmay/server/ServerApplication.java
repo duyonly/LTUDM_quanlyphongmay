@@ -7,9 +7,12 @@ import java.util.Scanner;
 import com.phongmay.common.CommandType;
 import com.phongmay.common.JsonUtil;
 import com.phongmay.common.Message;
+import com.phongmay.server.config.DatabaseConfig;
 
 public class ServerApplication {
     public static  void main(String[] args){
+        
+        DatabaseConfig.testConnection();
         int port=12345;
      
         try(ServerSocket server=new ServerSocket(port)) {
