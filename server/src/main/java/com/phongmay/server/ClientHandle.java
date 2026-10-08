@@ -37,16 +37,18 @@ public class ClientHandle  implements  Runnable{
             switch (message.getCommand()) {
                 case CONNECT:
                      // ClientManager clientManager=new ClientManager();
-                clientManager.addClient(message.getTarget(), this);
-                System.out.println("Máy "+message.getTarget()+" đã đăng ký");
-                Response connectResponse=new Response(message.getRequestId(),true,"connect thành công",null);
+                     String machineId1=String.valueOf(message.getData());
+                clientManager.addClient(machineId1, this);
+                System.out.println("Máy "+machineId1+" đã đăng ký");
+                Response connectResponse=new Response(message.getRequestId(),true,"connect thành công",machineId1);
                 writer.println(JsonUtil.responseToJson(connectResponse));
                     break;
                     case HEARTBEAT: 
-                    System.out.println("Máy "+message.getTarget()+" đang online");
+                    String machineId2=String.valueOf(message.getData());
+                    System.out.println("Máy "+machineId2+" đang online");
                     Response heartResponse=new  Response(message.getRequestId(),true,
                     "Heartbeat OK",
-                    null);
+                    machineId2);
                     String responseJson=JsonUtil.responseToJson(heartResponse);
                     writer.println(responseJson);
                     break;

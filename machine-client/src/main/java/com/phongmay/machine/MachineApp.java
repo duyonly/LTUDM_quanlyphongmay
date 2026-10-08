@@ -7,7 +7,7 @@ public class MachineApp {
     public static void main(String[] args) {
         String host = args.length > 0 ? args[0] : "localhost";
         int port = args.length > 1 ? Integer.parseInt(args[1]) : 12345;
-        String machineId = args.length > 2 ? args[2] : "PC01";
+        String machineId = args.length > 2 ? args[2] : "PC03";
 
         MachineClient client = new MachineClient(host, port, machineId);
 

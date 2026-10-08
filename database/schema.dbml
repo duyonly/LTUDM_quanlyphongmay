@@ -1,0 +1,67 @@
+Table users {
+  id bigint [pk, increment]
+  username varchar(50) [not null, unique]
+  password_hash varchar(255) [not null]
+  role varchar(20) [not null]
+  created_at timestamp [not null]
+}
+
+Table machines {
+  id bigint [pk, increment]
+  machine_code varchar(50) [not null, unique]
+  hostname varchar(100)
+  ip_address varchar(45)
+  os varchar(100)
+  status varchar(20) [not null]
+  last_seen timestamp
+  created_at timestamp [not null]
+}
+
+Table machine_specs {
+  id bigint [pk, increment]
+  machine_id bigint [not null, unique]
+  cpu varchar(255)
+  ram varchar(100)
+  gpu varchar(255)
+  disk varchar(255)
+}
+
+Table sessions {
+  id bigint [pk, increment]
+  user_id bigint
+  machine_id bigint [not null]
+  connected_at timestamp [not null]
+  disconnected_at timestamp
+}
+
+Table commands {
+  id bigint [pk, increment]
+  request_id varchar(100) [not null, unique]
+  machine_id bigint [not null]
+  admin_id bigint
+  command_type varchar(50) [not null]
+  status varchar(20) [not null]
+  message text
+  created_at timestamp [not null]
+  completed_at timestamp
+}
+
+Table audit_logs {
+  id bigint [pk, increment]
+  user_id bigint
+  action varchar(100) [not null]
+  target_type varchar(50)
+  target_id varchar(100)
+  description text
+  created_at timestamp [not null]
+}
+
+Ref: machine_specs.machine_id - machines.id
+
+Ref: sessions.user_id > users.id
+Ref: sessions.machine_id > machines.id
+
+Ref: commands.machine_id > machines.id
+Ref: commands.admin_id > users.id
+
+Ref: audit_logs.user_id > users.id
