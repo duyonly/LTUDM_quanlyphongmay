@@ -42,6 +42,19 @@ public class JsonUtil {
             data
     );
     }
+    public static MachineInfo jsonToMachineInfo(Object  data){
+        JSONObject json=(JSONObject) data;
+        MachineInfo info= new MachineInfo();
+        info.setMachineId(json.getString("machineId"));
+    info.setMachineName(json.getString("machineName"));
+    info.setIpAddress(json.getString("ipAddress"));
+    info.setOs(json.getString("os"));
+    info.setCpuUsage(json.getDouble("cpuUsage"));
+    info.setRamUsage(json.getDouble("ramUsage"));
+    info.setDiskUsage(json.getDouble("diskUsage"));
+    info.setOnline(json.getBoolean("online"));
+    return info;
+    }
 
   
 }
