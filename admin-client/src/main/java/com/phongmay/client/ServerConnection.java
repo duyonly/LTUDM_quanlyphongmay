@@ -7,6 +7,10 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.Socket;
 
+import com.phongmay.common.JsonUtil;
+import com.phongmay.common.Message;
+import com.phongmay.common.Response;
+
 public class ServerConnection {
     // Địa chỉ server mà admin client cần kết nối.
     private final String host;
@@ -60,23 +64,23 @@ public class ServerConnection {
     }
 
     // Gửi request theo protocol của dự án và trả về response tương ứng.
-    public Response sendRequest(Request request) throws IOException {
+    public Response sendRequest(Message request) throws IOException {
         if (request == null) {
-            throw new IllegalArgumentException("Request cannot be null");
+            throw new IllegalArgumentException("Message cannot be null");
         }
 
         if (!isConnected()) {
             throw new IllegalStateException("Server connection is not established");
         }
 
-        writer.println(request.toJson());
+        writer.println(JsonUtil.messageToJson(request));
         String responseJson = reader.readLine();
 
         if (responseJson == null || responseJson.isBlank()) {
             return null;
         }
 
-        return Response.fromJson(responseJson);
+        return JsonUtil.jsonToResponse(responseJson);
     }
 
     public boolean isConnected() {
