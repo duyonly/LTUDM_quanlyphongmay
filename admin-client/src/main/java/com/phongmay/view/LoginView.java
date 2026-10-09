@@ -7,7 +7,6 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.io.IOException;
-import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 
 import javax.swing.BorderFactory;
@@ -21,9 +20,7 @@ import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
 
-import com.phongmay.client.ServerConnection;
-import com.phongmay.common.CommandType;
-import com.phongmay.common.Message;
+import com.phongmay.client.LoginServer;
 import com.phongmay.common.Response;
 import com.phongmay.model.LoginRequest;
 
@@ -31,7 +28,7 @@ public class LoginView extends JFrame {
     private final JTextField txtUsername;
     private final JPasswordField txtPassword;
     private final JButton btnLogin;
-    private ServerConnection serverConnection;
+    private LoginServer loginServer;
 
     private static final String SERVER_HOST = "127.0.0.1";
     private static final int SERVER_PORT = 12345;
@@ -125,20 +122,10 @@ public class LoginView extends JFrame {
         new SwingWorker<Response, Void>() {
             @Override
             protected Response doInBackground() throws IOException {
-                if (serverConnection == null || !serverConnection.isConnected()) {
-                    serverConnection = new ServerConnection(SERVER_HOST, SERVER_PORT);
-                    if (!serverConnection.connect()) {
-                        throw new IOException("Không thể kết nối tới server "
-                                + SERVER_HOST + ":" + SERVER_PORT);
-                    }
+                if (loginServer == null || !loginServer.isConnected()) {
+                    loginServer = new LoginServer(SERVER_HOST, SERVER_PORT);
                 }
-
-                Message message = new Message(
-                        UUID.randomUUID().toString(),
-                        CommandType.GET_CLIENTS,
-                        null,
-                        null);
-                return serverConnection.sendRequest(message);
+                return loginServer.login(username, password);
             }
 
             @Override
@@ -155,8 +142,8 @@ public class LoginView extends JFrame {
                     }
 
                     JOptionPane.showMessageDialog(LoginView.this,
-                            "Đã kết nối server. " + response.getMessage(),
-                            "Kết nối thành công",
+                            response.getMessage(),
+                            "Đăng nhập thành công",
                             JOptionPane.INFORMATION_MESSAGE);
                 } catch (InterruptedException | ExecutionException e) {
                     if (e instanceof InterruptedException) {
@@ -171,13 +158,13 @@ public class LoginView extends JFrame {
     }
 
     private void showConnectionError(String message) {
-        if (serverConnection != null) {
-            serverConnection.close();
-            serverConnection = null;
+        if (loginServer != null) {
+            loginServer.close();
+            loginServer = null;
         }
         JOptionPane.showMessageDialog(this,
-                "Không thể kết nối server: " + message,
-                "Lỗi kết nối",
+                "Không thể đăng nhập: " + message,
+                "Lỗi đăng nhập",
                 JOptionPane.ERROR_MESSAGE);
     }
 
