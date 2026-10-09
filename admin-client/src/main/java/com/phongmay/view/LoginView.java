@@ -141,10 +141,18 @@ public class LoginView extends JFrame {
                         return;
                     }
 
-                    JOptionPane.showMessageDialog(LoginView.this,
-                            response.getMessage(),
-                            "Đăng nhập thành công",
-                            JOptionPane.INFORMATION_MESSAGE);
+                    if (loginServer != null) {
+                        loginServer.close();
+                        loginServer = null;
+                    }
+
+                    JFrame dashboardFrame = new JFrame("Quản lý phòng máy");
+                    dashboardFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+                    dashboardFrame.setContentPane(new DashBoard());
+                    dashboardFrame.setSize(800, 600);
+                    dashboardFrame.setLocationRelativeTo(null);
+                    dashboardFrame.setVisible(true);
+                    dispose();
                 } catch (InterruptedException | ExecutionException e) {
                     if (e instanceof InterruptedException) {
                         Thread.currentThread().interrupt();
