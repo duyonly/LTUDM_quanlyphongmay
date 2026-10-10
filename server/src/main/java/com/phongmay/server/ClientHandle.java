@@ -13,6 +13,7 @@ import com.phongmay.common.MachineInfo;
 import com.phongmay.common.Message;
 import com.phongmay.common.Response;
 import com.phongmay.server.dao.MachineDao;
+import com.phongmay.server.dao.UserDao;
 
 
 public class ClientHandle  implements  Runnable{
@@ -20,6 +21,7 @@ public class ClientHandle  implements  Runnable{
     private ClientManager clientManager;
     private PrintWriter writer;
     private  final MachineDao machineDao=new MachineDao();
+    private final UserDao userDao = new UserDao();
     public ClientHandle (Socket socket,ClientManager clientManager){
         this.socket=socket;
         this.clientManager=clientManager;
@@ -41,6 +43,37 @@ public class ClientHandle  implements  Runnable{
             System.out.println("Command: "+message.getCommand());
             System.out.println("Target: "+message.getTarget());
             switch (message.getCommand()) {
+                case LOGIN:
+                    JSONObject loginData = (JSONObject) message.getData();
+                    try {
+                        boolean loginSuccess = userDao.authenticate(
+                                loginData.getString("username"),
+                                loginData.getString("password"));
+                        Response loginResponse = new Response(
+                                message.getRequestId(),
+                                loginSuccess,
+                                loginSuccess ? "Đăng nhập thành công" : "Tên đăng nhập hoặc mật khẩu không đúng",
+                                null);
+                        writer.println(JsonUtil.responseToJson(loginResponse));
+                    } catch (java.sql.SQLException e) {
+                        Response loginErrorResponse = new Response(
+                                message.getRequestId(), false, "Không thể xác thực tài khoản với database", null);
+                        writer.println(JsonUtil.responseToJson(loginErrorResponse));
+                        e.printStackTrace();
+                    }
+                    break;
+                case GET_MACHINES:
+                    try {
+                        Response machinesResponse = new Response(
+                                message.getRequestId(), true, "Danh sách máy trong database", machineDao.getMachines());
+                        writer.println(JsonUtil.responseToJson(machinesResponse));
+                    } catch (java.sql.SQLException e) {
+                        Response machinesErrorResponse = new Response(
+                                message.getRequestId(), false, "Không thể tải danh sách máy từ database", null);
+                        writer.println(JsonUtil.responseToJson(machinesErrorResponse));
+                        e.printStackTrace();
+                    }
+                    break;
                 case CONNECT:
                      // ClientManager clientManager=new ClientManager();
                      MachineInfo machineInfo=JsonUtil.jsonToMachineInfo(message.getData());

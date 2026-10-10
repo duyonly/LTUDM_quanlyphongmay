@@ -5,6 +5,7 @@ public enum CommandType {
     LOGIN,
     HEARTBEAT,
     GET_CLIENTS,
+    GET_MACHINES,
 
     GET_SYSTEM_INFO,
     GET_PROCESSES,

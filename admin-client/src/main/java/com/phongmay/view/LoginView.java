@@ -21,6 +21,8 @@ import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
 
+import org.json.JSONObject;
+
 import com.phongmay.client.ServerConnection;
 import com.phongmay.common.CommandType;
 import com.phongmay.common.Message;
@@ -135,9 +137,11 @@ public class LoginView extends JFrame {
 
                 Message message = new Message(
                         UUID.randomUUID().toString(),
-                        CommandType.GET_CLIENTS,
+                    CommandType.LOGIN,
                         null,
-                        null);
+                    new JSONObject()
+                        .put("username", request.getUsername())
+                        .put("password", request.getPassword()));
                 return serverConnection.sendRequest(message);
             }
 
@@ -150,14 +154,17 @@ public class LoginView extends JFrame {
                         String errorMessage = response == null
                                 ? "Server không gửi phản hồi."
                                 : response.getMessage();
-                        showConnectionError(errorMessage);
+                        JOptionPane.showMessageDialog(LoginView.this,
+                            errorMessage,
+                            "Đăng nhập thất bại",
+                            JOptionPane.ERROR_MESSAGE);
                         return;
                     }
 
-                    JOptionPane.showMessageDialog(LoginView.this,
-                            "Đã kết nối server. " + response.getMessage(),
-                            "Kết nối thành công",
-                            JOptionPane.INFORMATION_MESSAGE);
+                        MainFrame mainFrame = new MainFrame(serverConnection);
+                        mainFrame.setVisible(true);
+                        serverConnection = null;
+                        dispose();
                 } catch (InterruptedException | ExecutionException e) {
                     if (e instanceof InterruptedException) {
                         Thread.currentThread().interrupt();
