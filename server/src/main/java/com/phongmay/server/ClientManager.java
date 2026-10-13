@@ -27,9 +27,7 @@ public class ClientManager {
             client.send(json);
         }
         else{
-            System.out.println(
-                "Không tìm thấy máy: " + machineId
-        );
+            System.out.println("Không tìm thấy máy: " + machineId);
         }
     }
     public Set<String> getClientId(){

@@ -13,13 +13,14 @@ import com.phongmay.common.MachineInfo;
 import com.phongmay.common.Message;
 import com.phongmay.common.Response;
 import com.phongmay.server.dao.MachineDao;
+import com.phongmay.server.dao.UserDao;
 
 public class ClientHandle implements Runnable {
     private final Socket socket;
     private final ClientManager clientManager;
     private PrintWriter writer;
     private final MachineDao machineDao = new MachineDao();
-
+    private  final UserDao userDao=new UserDao();
     public ClientHandle(Socket socket, ClientManager clientManager) {
         this.socket = socket;
         this.clientManager = clientManager;
@@ -75,7 +76,7 @@ public class ClientHandle implements Runnable {
                             password = data.optString("password", "");
                         }
 
-                        boolean ok = "admin".equalsIgnoreCase(username) && "admin".equals(password);
+                        boolean ok = userDao.checkLogin(username, password);
 
                         Response res = new Response(
                                 message.getRequestId(),
