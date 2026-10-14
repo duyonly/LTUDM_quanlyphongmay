@@ -12,8 +12,9 @@ public class ClientManager {
 
     }
     public void removeClient(String machineId,ClientHandle client){
-        clients.remove(machineId);
-        System.out.println("đã xóa máy: "+machineId);
+        if (clients.remove(machineId, client)) {
+            System.out.println("đã xóa máy: " + machineId);
+        }
     }
     public ClientHandle getClient(String machineId){
         return clients.get(machineId);
@@ -33,4 +34,5 @@ public class ClientManager {
     public Set<String> getClientId(){
         return clients.keySet();
     }
+
 }

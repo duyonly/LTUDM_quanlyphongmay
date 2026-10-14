@@ -2,7 +2,14 @@ package com.phongmay.server.dao;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
+
+import com.phongmay.common.MachineStatus;
 import com.phongmay.server.config.DatabaseConfig;
 
 public class MachineDao {
@@ -65,5 +72,42 @@ public class MachineDao {
                 e.printStackTrace();
                     return false;
             }
+    }
+    public int chuyenTrangThai(int timeout){
+        String sql="""
+              UPDATE machines SET status='OFFLINE' WHERE status='ONLINE' AND last_seen<?
+                """;
+        try(Connection con=DatabaseConfig.getConnection();
+    PreparedStatement ps=con.prepareStatement(sql)) {
+            ps.setTimestamp(1, Timestamp.
+                valueOf(LocalDateTime.now()
+                .minusSeconds(timeout)));
+            return ps.executeUpdate();
+        } catch (Exception e) {
+            e.printStackTrace();
+        return 0;
+        }
+    }
+    public List<MachineStatus> getAllMachines(){
+        List<MachineStatus> list=new ArrayList<>();
+        String sql="""
+            SELECT machine_code,hostname,ip_address,os,status FROM machines ORDER BY machine_code
+                """;
+                try (Connection con=DatabaseConfig.getConnection();
+            PreparedStatement ps=con.prepareStatement(sql);
+             ResultSet rs=ps.executeQuery()){
+                    while (rs.next()) {
+                        MachineStatus m=new MachineStatus();
+                        m.setMachineId(rs.getString("machine_code"));
+                        m.setMachineName(rs.getString("hostname"));
+                        m.setIpAddress(rs.getString("ip_address"));
+                        m.setOs(rs.getString("os"));
+                        m.setStatus(rs.getString("status"));
+                        list.add(m);
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                return  list;
     }
 }
