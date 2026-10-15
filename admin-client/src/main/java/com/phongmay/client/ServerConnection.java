@@ -64,7 +64,7 @@ public class ServerConnection {
     }
 
     // Gửi request theo protocol của dự án và trả về response tương ứng.
-    public Response sendRequest(Message request) throws IOException {
+    public synchronized Response sendRequest(Message request) throws IOException {
         if (request == null) {
             throw new IllegalArgumentException("Message cannot be null");
         }
