@@ -25,12 +25,12 @@ import com.phongmay.common.CommandType;
 import com.phongmay.common.Message;
 import com.phongmay.common.Response;
 
-public class DashbbordView extends JPanel {
+public class DashBoardView extends JPanel {
     private final ServerConnection serverConnection;
     private final JPanel machineListPanel;
     private final JLabel feedbackLabel;
 
-    public DashbbordView(ServerConnection serverConnection) {
+    public DashBoardView(ServerConnection serverConnection) {
         this.serverConnection = serverConnection;
         setLayout(new BorderLayout(12, 12));
         setBackground(new Color(245, 248, 252));

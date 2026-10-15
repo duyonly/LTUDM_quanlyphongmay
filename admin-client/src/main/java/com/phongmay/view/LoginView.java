@@ -33,10 +33,9 @@ public class LoginView extends JFrame {
     private final JTextField txtUsername;
     private final JPasswordField txtPassword;
     private final JButton btnLogin;
-    private ServerConnection serverConnection;
-
     private static final String SERVER_HOST = "127.0.0.1";
     private static final int SERVER_PORT = 12345;
+    private final ServerConnection serverConnection = new ServerConnection(SERVER_HOST, SERVER_PORT);
 
     public LoginView() {
         super("Đăng nhập hệ thống quản lý phòng máy");
@@ -127,12 +126,8 @@ public class LoginView extends JFrame {
         new SwingWorker<Response, Void>() {
             @Override
             protected Response doInBackground() throws IOException {
-                if (serverConnection == null || !serverConnection.isConnected()) {
-                    serverConnection = new ServerConnection(SERVER_HOST, SERVER_PORT);
-                    if (!serverConnection.connect()) {
-                        throw new IOException("Không thể kết nối tới server "
-                                + SERVER_HOST + ":" + SERVER_PORT);
-                    }
+                if (!serverConnection.isConnected() && !serverConnection.connect()) {
+                    throw new IOException("Không thể kết nối tới server " + SERVER_HOST + ":" + SERVER_PORT);
                 }
 
                 Message message = new Message(
@@ -163,7 +158,6 @@ public class LoginView extends JFrame {
 
                         MainFrame mainFrame = new MainFrame(serverConnection);
                         mainFrame.setVisible(true);
-                        serverConnection = null;
                         dispose();
                 } catch (InterruptedException | ExecutionException e) {
                     if (e instanceof InterruptedException) {
@@ -178,13 +172,10 @@ public class LoginView extends JFrame {
     }
 
     private void showConnectionError(String message) {
-        if (serverConnection != null) {
-            serverConnection.close();
-            serverConnection = null;
-        }
+        serverConnection.close();
         JOptionPane.showMessageDialog(this,
-                "Không thể kết nối server: " + message,
-                "Lỗi kết nối",
+                "Không thể đăng nhập: " + message,
+                "Lỗi đăng nhập",
                 JOptionPane.ERROR_MESSAGE);
     }
 

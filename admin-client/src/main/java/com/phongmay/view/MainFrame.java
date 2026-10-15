@@ -16,7 +16,7 @@ public class MainFrame extends JFrame {
 		setMinimumSize(new Dimension(720, 480));
 		setSize(900, 600);
 		setLocationRelativeTo(null);
-		setContentPane(new DashbbordView(serverConnection));
+		setContentPane(new DashBoard(serverConnection));
 		addWindowListener(new WindowAdapter() {
 			@Override
 			public void windowClosed(WindowEvent event) {
