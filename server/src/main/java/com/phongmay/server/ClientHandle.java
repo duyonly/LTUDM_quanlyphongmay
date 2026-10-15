@@ -43,7 +43,17 @@ public class ClientHandle implements Runnable {
             String json;
             while ((json = reader.readLine()) != null) {
                 System.out.println("JSON nhận được: " + json);
-
+                JSONObject obj=new JSONObject(json);
+                if(obj.has("success")){
+                    Response response=JsonUtil.jsonToResponse(json);
+                    if(currentMachineId!=null){
+                        System.out.println("Nhận kết quả từ máy: " + currentMachineId);
+                        System.out.println("Response: " + json);
+                        clientManager.completeRequest(response);
+                        
+                    }
+                    continue;
+                }
                 Message message = JsonUtil.jsonToMessage(json);
                 System.out.println("Command: " + message.getCommand());
                 System.out.println("Target: " + message.getTarget());
@@ -112,9 +122,46 @@ public class ClientHandle implements Runnable {
 
     String jsonResponse = JsonUtil.responseToJson(res);
     System.out.println("JSON trả về admin: " + jsonResponse);
-                        writer.println(JsonUtil.responseToJson(res));
+                        writer.println(jsonResponse);
                         
                         break;
+                    }
+                    case GET_SYSTEM_INFO:
+                    case GET_PROCESSES:
+                    case KILL_PROCESS:
+                    case SCREENSHOT: {
+                        //không cho machines gửi lệnh điều khiển
+                        if(currentMachineId!=null){
+                            Response response=new Response(message.getRequestId(),false, 
+                             "Máy tính không được phép gửi lệnh điều khiển",
+                            null);
+                            writer.println(JsonUtil.responseToJson(response));
+                            break;
+                        }
+                        String target=message.getTarget();
+                        if(target==null || target.isBlank()){
+                            writer.println(JsonUtil.responseToJson(new Response(message.getRequestId(),
+                            false, "Chưa chỉ định máy cần điều khiển",
+                            null)));
+                            break;
+                        }
+                       ClientHandle machine=clientManager.getClient(target);
+                       if(machine==null){
+                        writer.println(JsonUtil.responseToJson(
+                            new Response(
+                                    message.getRequestId(),
+                                    false,
+                                    "Máy không kết nối",
+                                    null
+                            )
+                    ));
+                    break;
+                       }
+                       //lưu admin đang chờ kết quả 
+                       clientManager.adminRequest(message.getRequestId(), this);
+                       //chuyển lệnh đến máy đích 
+                       machine.send(JsonUtil.messageToJson(message));
+                       break;
                     }
 
                     default: {
@@ -129,7 +176,8 @@ public class ClientHandle implements Runnable {
             System.out.println("Client đã ngắt kết nối: " + ip);
             e.printStackTrace();
         } finally {
-            if(currentMachineId!=null){
+            clientManager.removePendingRequest(this);
+            if(currentMachineId!=null  && clientManager.getClient(currentMachineId) == this){
                 machineDao.disconnectMachine(currentMachineId);
                 clientManager.removeClient(currentMachineId, this);
             }
