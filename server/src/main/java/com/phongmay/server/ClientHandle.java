@@ -41,29 +41,141 @@ public class ClientHandle implements Runnable {
             String json;
             while ((json = reader.readLine()) != null) {
                 System.out.println("JSON nhận được: " + json);
+                JSONObject obj=new JSONObject(json);
+                if(obj.has("success")){
+                    Response response=JsonUtil.jsonToResponse(json);
+                    if(currentMachineId!=null){
+                        System.out.println("Nhận kết quả từ máy: " + currentMachineId);
+                        System.out.println("Response: " + json);
+                        clientManager.completeRequest(response);
+                        
+                    }
+                    continue;
+                }
                 Message message = JsonUtil.jsonToMessage(json);
                 System.out.println("Command: " + message.getCommand());
                 System.out.println("Target: " + message.getTarget());
 
                 switch (message.getCommand()) {
-                    case LOGIN -> handleLogin(message);
-                    case GET_MACHINES -> handleGetMachines(message);
-                    case ADD_MACHINE -> handleAddMachine(message);
-                    case UPDATE_MACHINE -> handleUpdateMachine(message);
-                    case OPEN_MACHINE -> handleSetMachineOpen(message, true);
-                    case CLOSE_MACHINE -> handleSetMachineOpen(message, false);
-                    case CONNECT -> handleConnect(message);
-                    case HEARTBEAT -> handleHeartbeat(message);
-                    case GET_CLIENTS -> handleGetClients(message);
-                    default -> sendResponse(new Response(message.getRequestId(), false,
-                            "Command chưa được hỗ trợ", null));
+
+                    case CONNECT: {
+                        MachineInfo info = JsonUtil.jsonToMachineInfo(message.getData());
+                        String machineId = info.getMachineId();
+
+                        boolean success = machineDao.connectMachine(
+                                machineId,
+                                info.getMachineName(),
+                                info.getIpAddress(),
+                                info.getOs());
+
+                        Response res;
+                        if (success) {
+                            currentMachineId = machineId;
+                            clientManager.addClient(machineId, this);
+                            System.out.println("Máy " + machineId + " đã đăng ký");
+                            res = new Response(message.getRequestId(), true, "connect thành công", machineId);
+                        } else {
+                            res = new Response(message.getRequestId(), false, "Không thể đăng ký máy", null);
+                        }
+                        writer.println(JsonUtil.responseToJson(res));
+                        break;
+                    }
+
+                    case LOGIN: {
+                        String username = "";
+                        String password = "";
+
+                        if (message.getData() instanceof JSONObject data) {
+                            username = data.optString("username", "");
+                            password = data.optString("password", "");
+                        }
+
+                        boolean ok = userDao.checkLogin(username, password);
+
+                        Response res = new Response(
+                                message.getRequestId(),
+                                ok,
+                                ok ? "Đăng nhập thành công" : "Tên đăng nhập hoặc mật khẩu không đúng",
+                                null);
+                        writer.println(JsonUtil.responseToJson(res));
+                        break;
+                    }
+
+                    case HEARTBEAT: {
+                        String machineId = String.valueOf(message.getData());
+                        boolean updated =  machineDao.updateHeartbeat(machineId);
+                        System.out.println("Máy " + machineId + " đang online");
+
+                        Response res = new Response(message.getRequestId(), updated , updated ?"Heartbeat OK":"không tìm thấy máy này", machineId);
+                        writer.println(JsonUtil.responseToJson(res));
+                        break;
+                    }
+
+                    case GET_CLIENTS: {
+                        System.out.println("Admin yêu cầu danh sách máy");
+                        List<MachineStatus> machines=machineDao.getAllMachines();
+                        System.out.println("Số máy lấy được: " + machines.size());
+                        Response res = new Response(message.getRequestId(), true,
+                                "Danh sách máy đang kết nối", machines);
+
+    String jsonResponse = JsonUtil.responseToJson(res);
+    System.out.println("JSON trả về admin: " + jsonResponse);
+                        writer.println(jsonResponse);
+                        
+                        break;
+                    }
+                    case GET_SYSTEM_INFO:
+                    case GET_PROCESSES:
+                    case KILL_PROCESS:
+                    case SCREENSHOT: {
+                        //không cho machines gửi lệnh điều khiển
+                        if(currentMachineId!=null){
+                            Response response=new Response(message.getRequestId(),false, 
+                             "Máy tính không được phép gửi lệnh điều khiển",
+                            null);
+                            writer.println(JsonUtil.responseToJson(response));
+                            break;
+                        }
+                        String target=message.getTarget();
+                        if(target==null || target.isBlank()){
+                            writer.println(JsonUtil.responseToJson(new Response(message.getRequestId(),
+                            false, "Chưa chỉ định máy cần điều khiển",
+                            null)));
+                            break;
+                        }
+                       ClientHandle machine=clientManager.getClient(target);
+                       if(machine==null){
+                        writer.println(JsonUtil.responseToJson(
+                            new Response(
+                                    message.getRequestId(),
+                                    false,
+                                    "Máy không kết nối",
+                                    null
+                            )
+                    ));
+                    break;
+                       }
+                       //lưu admin đang chờ kết quả 
+                       clientManager.adminRequest(message.getRequestId(), this);
+                       //chuyển lệnh đến máy đích 
+                       machine.send(JsonUtil.messageToJson(message));
+                       break;
+                    }
+
+                    default: {
+                        Response res = new Response(message.getRequestId(), false,
+                                "Command chưa được hỗ trợ", null);
+                        writer.println(JsonUtil.responseToJson(res));
+                        break;
+                    }
                 }
             }
         } catch (Exception e) {
             System.out.println("Client đã ngắt kết nối: " + ip);
             e.printStackTrace();
         } finally {
-            if (currentMachineId != null) {
+            clientManager.removePendingRequest(this);
+            if(currentMachineId!=null  && clientManager.getClient(currentMachineId) == this){
                 machineDao.disconnectMachine(currentMachineId);
                 clientManager.removeClient(currentMachineId, this);
             }
