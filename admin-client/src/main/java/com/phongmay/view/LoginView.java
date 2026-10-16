@@ -7,6 +7,7 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.io.IOException;
+import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 
 import javax.swing.BorderFactory;
@@ -20,7 +21,11 @@ import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
 
-import com.phongmay.client.LoginServer;
+import org.json.JSONObject;
+
+import com.phongmay.client.ServerConnection;
+import com.phongmay.common.CommandType;
+import com.phongmay.common.Message;
 import com.phongmay.common.Response;
 import com.phongmay.model.LoginRequest;
 
@@ -28,10 +33,9 @@ public class LoginView extends JFrame {
     private final JTextField txtUsername;
     private final JPasswordField txtPassword;
     private final JButton btnLogin;
-    private LoginServer loginServer;
-
     private static final String SERVER_HOST = "127.0.0.1";
     private static final int SERVER_PORT = 12345;
+    private final ServerConnection serverConnection = new ServerConnection(SERVER_HOST, SERVER_PORT);
 
     public LoginView() {
         super("Đăng nhập hệ thống quản lý phòng máy");
@@ -122,10 +126,18 @@ public class LoginView extends JFrame {
         new SwingWorker<Response, Void>() {
             @Override
             protected Response doInBackground() throws IOException {
-                if (loginServer == null || !loginServer.isConnected()) {
-                    loginServer = new LoginServer(SERVER_HOST, SERVER_PORT);
+                if (!serverConnection.isConnected() && !serverConnection.connect()) {
+                    throw new IOException("Không thể kết nối tới server " + SERVER_HOST + ":" + SERVER_PORT);
                 }
-                return loginServer.login(username, password);
+
+                Message message = new Message(
+                        UUID.randomUUID().toString(),
+                    CommandType.LOGIN,
+                        null,
+                    new JSONObject()
+                        .put("username", request.getUsername())
+                        .put("password", request.getPassword()));
+                return serverConnection.sendRequest(message);
             }
 
             @Override
@@ -137,22 +149,16 @@ public class LoginView extends JFrame {
                         String errorMessage = response == null
                                 ? "Server không gửi phản hồi."
                                 : response.getMessage();
-                        showConnectionError(errorMessage);
+                        JOptionPane.showMessageDialog(LoginView.this,
+                            errorMessage,
+                            "Đăng nhập thất bại",
+                            JOptionPane.ERROR_MESSAGE);
                         return;
                     }
 
-                    if (loginServer != null) {
-                        loginServer.close();
-                        loginServer = null;
-                    }
-
-                    JFrame dashboardFrame = new JFrame("Quản lý phòng máy");
-                    dashboardFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-                    dashboardFrame.setContentPane(new DashBoard());
-                    dashboardFrame.setSize(800, 600);
-                    dashboardFrame.setLocationRelativeTo(null);
-                    dashboardFrame.setVisible(true);
-                    dispose();
+                        MainFrame mainFrame = new MainFrame(serverConnection);
+                        mainFrame.setVisible(true);
+                        dispose();
                 } catch (InterruptedException | ExecutionException e) {
                     if (e instanceof InterruptedException) {
                         Thread.currentThread().interrupt();
@@ -166,10 +172,7 @@ public class LoginView extends JFrame {
     }
 
     private void showConnectionError(String message) {
-        if (loginServer != null) {
-            loginServer.close();
-            loginServer = null;
-        }
+        serverConnection.close();
         JOptionPane.showMessageDialog(this,
                 "Không thể đăng nhập: " + message,
                 "Lỗi đăng nhập",

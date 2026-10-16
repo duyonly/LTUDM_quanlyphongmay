@@ -8,9 +8,15 @@ import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.GridLayout;
 import java.awt.Insets;
+import java.io.IOException;
+import java.net.InetAddress;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
 import java.util.Locale;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ExecutionException;
 import java.util.regex.Pattern;
 
 import javax.swing.BorderFactory;
@@ -28,12 +34,23 @@ import javax.swing.ListSelectionModel;
 import javax.swing.RowFilter;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
+import javax.swing.SwingWorker;
+import javax.swing.Timer;
 import javax.swing.border.EmptyBorder;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableColumn;
 import javax.swing.table.TableRowSorter;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+import com.phongmay.client.ServerConnection;
+import com.phongmay.common.CommandType;
+import com.phongmay.common.Message;
+import com.phongmay.common.Response;
 
 public class DashBoard extends JPanel {
     private static final Color CANVAS = new Color(243, 246, 244);
@@ -51,8 +68,21 @@ public class DashBoard extends JPanel {
     private final JLabel offlineValue = new JLabel("0");
     private final JLabel lockedValue = new JLabel("0");
     private final JLabel selectionSummary = new JLabel("Chọn một máy để xem nhanh thông tin");
+    private final JLabel feedbackLabel = new JLabel("Đang tải dữ liệu máy...");
+    private final ServerConnection serverConnection;
+    private final Map<String, Long> uptimeStartByMachine = new HashMap<>();
+    private final Timer uptimeTimer;
+    private boolean loadingMachines;
+    private boolean savingMachine;
+    private boolean updatingMachineStatus;
 
     public DashBoard() {
+        this(new ServerConnection("127.0.0.1", 12345));
+    }
+
+    public DashBoard(ServerConnection serverConnection) {
+        this.serverConnection = serverConnection;
+        uptimeTimer = new Timer(1000, event -> refreshUptimeDisplays());
         setLayout(new BorderLayout(0, 18));
         setBackground(CANVAS);
         setBorder(new EmptyBorder(24, 28, 22, 28));
@@ -86,14 +116,15 @@ public class DashBoard extends JPanel {
         heading.add(adminLabel, BorderLayout.EAST);
 
         machineTableModel = new DefaultTableModel(
-                new Object[] { "Mã máy", "Tên máy / Host", "Địa chỉ IP", "Phòng", "Người dùng",
-                        "Trạng thái", "CPU", "RAM", "Hoạt động gần nhất" }, 0) {
+            new Object[] { "Mã máy", "Tên máy / Host", "Địa chỉ IP", "Hệ điều hành", "CPU",
+                "GPU", "RAM", "Trạng thái", "Ổ đĩa", "Thời gian hoạt động" }, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
                 return false;
             }
         };
         machineTable = new JTable(machineTableModel);
+        machineTable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
         machineTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         machineTable.setRowHeight(40);
         machineTable.setFont(new Font("Segoe UI", Font.PLAIN, 13));
@@ -111,20 +142,19 @@ public class DashBoard extends JPanel {
         machineTable.getTableHeader().setPreferredSize(new java.awt.Dimension(0, 40));
         machineTable.getTableHeader().setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0,
                 new Color(225, 232, 227)));
-        machineTable.getColumnModel().getColumn(5).setCellRenderer(new MachineStatusRenderer());
+        machineTable.getColumnModel().getColumn(7).setCellRenderer(new MachineStatusRenderer());
         machineTable.getColumnModel().getColumn(0).setPreferredWidth(72);
         machineTable.getColumnModel().getColumn(1).setPreferredWidth(120);
         machineTable.getColumnModel().getColumn(2).setPreferredWidth(105);
-        machineTable.getColumnModel().getColumn(3).setPreferredWidth(78);
-        machineTable.getColumnModel().getColumn(4).setPreferredWidth(95);
-        machineTable.getColumnModel().getColumn(5).setPreferredWidth(112);
-        machineTable.getColumnModel().getColumn(6).setPreferredWidth(55);
-        machineTable.getColumnModel().getColumn(7).setPreferredWidth(55);
-        machineTable.getColumnModel().getColumn(8).setPreferredWidth(132);
+        machineTable.getColumnModel().getColumn(3).setPreferredWidth(110);
+        machineTable.getColumnModel().getColumn(4).setPreferredWidth(100);
+        machineTable.getColumnModel().getColumn(5).setPreferredWidth(110);
+        machineTable.getColumnModel().getColumn(6).setPreferredWidth(65);
+        machineTable.getColumnModel().getColumn(7).setPreferredWidth(112);
+        machineTable.getColumnModel().getColumn(8).setPreferredWidth(100);
+        machineTable.getColumnModel().getColumn(9).setPreferredWidth(132);
         tableSorter = new TableRowSorter<>(machineTableModel);
         machineTable.setRowSorter(tableSorter);
-
-        addSampleMachines();
 
         searchField = new JTextField(20);
         searchField.setFont(new Font("Segoe UI", Font.PLAIN, 13));
@@ -164,9 +194,12 @@ public class DashBoard extends JPanel {
         openButton.addActionListener(event -> setMachineOpen(true));
         JButton closeButton = createButton("Tắt", Color.WHITE, new Color(171, 67, 59));
         closeButton.addActionListener(event -> setMachineOpen(false));
+        JButton refreshButton = createButton("Làm mới", Color.WHITE, INK);
+        refreshButton.addActionListener(event -> loadMachines());
 
         JPanel actionPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 7, 0));
         actionPanel.setOpaque(false);
+        actionPanel.add(refreshButton);
         actionPanel.add(openButton);
         actionPanel.add(closeButton);
         actionPanel.add(editButton);
@@ -199,6 +232,7 @@ public class DashBoard extends JPanel {
         tableHeading.add(actionPanel, BorderLayout.SOUTH);
 
         JScrollPane scrollPane = new JScrollPane(machineTable);
+        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
         scrollPane.setBorder(BorderFactory.createLineBorder(new Color(224, 231, 226)));
         scrollPane.getViewport().setBackground(Color.WHITE);
 
@@ -211,7 +245,16 @@ public class DashBoard extends JPanel {
         machineSection.setOpaque(false);
         machineSection.add(tableHeading, BorderLayout.NORTH);
         machineSection.add(scrollPane, BorderLayout.CENTER);
-        machineSection.add(selectionSummary, BorderLayout.SOUTH);
+        JPanel footer = new JPanel(new BorderLayout());
+        footer.setOpaque(false);
+        selectionSummary.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        selectionSummary.setForeground(MUTED);
+        selectionSummary.setBorder(new EmptyBorder(8, 2, 0, 2));
+        feedbackLabel.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        feedbackLabel.setForeground(MUTED);
+        footer.add(selectionSummary, BorderLayout.WEST);
+        footer.add(feedbackLabel, BorderLayout.EAST);
+        machineSection.add(footer, BorderLayout.SOUTH);
 
         JPanel northContent = new JPanel(new BorderLayout(0, 18));
         northContent.setOpaque(false);
@@ -220,7 +263,20 @@ public class DashBoard extends JPanel {
 
         add(northContent, BorderLayout.NORTH);
         add(machineSection, BorderLayout.CENTER);
-        refreshMetrics();
+        loadMachines();
+        uptimeTimer.start();
+    }
+
+    @Override
+    public void removeNotify() {
+        uptimeTimer.stop();
+        super.removeNotify();
+    }
+
+    @Override
+    public void addNotify() {
+        super.addNotify();
+        uptimeTimer.start();
     }
 
     private JPanel createMetricsPanel() {
@@ -270,15 +326,74 @@ public class DashBoard extends JPanel {
         return button;
     }
 
-    private void addSampleMachines() {
-        machineTableModel.addRow(new Object[] { "PM-A01", "LAB-A01", "10.10.1.11", "A-101", "Trống", "ONLINE", "18%", "42%", "1 phút trước" });
-        machineTableModel.addRow(new Object[] { "PM-A02", "LAB-A02", "10.10.1.12", "A-101", "Nguyễn An", "ONLINE", "34%", "67%", "Vừa cập nhật" });
-        machineTableModel.addRow(new Object[] { "PM-A03", "LAB-A03", "10.10.1.13", "A-101", "Trần Minh", "ONLINE", "52%", "71%", "Vừa cập nhật" });
-        machineTableModel.addRow(new Object[] { "PM-A04", "LAB-A04", "10.10.1.14", "A-101", "Trống", "OFFLINE", "—", "—", "Hôm qua, 17:42" });
-        machineTableModel.addRow(new Object[] { "PM-B01", "LAB-B01", "10.10.2.21", "B-203", "Lê Hà", "ONLINE", "26%", "58%", "Vừa cập nhật" });
-        machineTableModel.addRow(new Object[] { "PM-B02", "LAB-B02", "10.10.2.22", "B-203", "Trống", "LOCKED", "4%", "39%", "2 phút trước" });
-        machineTableModel.addRow(new Object[] { "PM-B03", "LAB-B03", "10.10.2.23", "B-203", "Phạm Long", "ONLINE", "61%", "76%", "Vừa cập nhật" });
-        machineTableModel.addRow(new Object[] { "PM-B04", "LAB-B04", "10.10.2.24", "B-203", "Trống", "OFFLINE", "—", "—", "Hôm qua, 18:05" });
+    private void loadMachines() {
+        if (loadingMachines) {
+            return;
+        }
+        loadingMachines = true;
+        feedbackLabel.setText("Đang tải dữ liệu máy...");
+
+        new SwingWorker<JSONArray, Void>() {
+            @Override
+            protected JSONArray doInBackground() throws IOException {
+                if (!serverConnection.isConnected() && !serverConnection.connect()) {
+                    throw new IOException("Không thể kết nối tới server.");
+                }
+                Message request = new Message(UUID.randomUUID().toString(), CommandType.GET_MACHINES, null, null);
+                Response response = serverConnection.sendRequest(request);
+                if (response == null || !response.isSuccess()) {
+                    throw new IOException(response == null
+                            ? "Server không gửi phản hồi."
+                            : response.getMessage());
+                }
+                if (response.getData() instanceof JSONArray machines) {
+                    return machines;
+                }
+                throw new IOException("Dữ liệu máy server trả về không hợp lệ.");
+            }
+
+            @Override
+            protected void done() {
+                loadingMachines = false;
+                try {
+                    JSONArray machines = get();
+                    machineTableModel.setRowCount(0);
+                    uptimeStartByMachine.clear();
+                    for (int index = 0; index < machines.length(); index++) {
+                        JSONObject machine = machines.getJSONObject(index);
+                        String machineCode = machine.optString("machine_code", "—");
+                        long activeSince = machine.optLong("active_since_ms", 0L);
+                        long uptimeSeconds = machine.optLong("uptime_seconds", 0L);
+                        if (activeSince > 0) {
+                            uptimeStartByMachine.put(machineCode, activeSince);
+                        }
+                        machineTableModel.addRow(new Object[] {
+                                machineCode,
+                                machine.optString("hostname", "—"),
+                                machine.optString("ip_address", "—"),
+                                machine.optString("os", "—"),
+                                machine.optString("cpu", "—"),
+                                machine.optString("gpu", "—"),
+                                machine.optString("ram", "—"),
+                                machine.optString("status", "UNKNOWN"),
+                                machine.optString("disk", "—"),
+                                formatDuration(uptimeSeconds)
+                        });
+                    }
+                    adjustColumnWidths();
+                    refreshMetrics();
+                    applyFilters();
+                    feedbackLabel.setText("Đã tải " + machines.length() + " máy từ database");
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    feedbackLabel.setText("Đã hủy tải dữ liệu máy.");
+                } catch (ExecutionException e) {
+                    Throwable cause = e.getCause();
+                    feedbackLabel.setText("Không tải được dữ liệu: "
+                            + (cause == null ? e.getMessage() : cause.getMessage()));
+                }
+            }
+        }.execute();
     }
 
     private void applyFilters() {
@@ -289,9 +404,27 @@ public class DashBoard extends JPanel {
             filters.add(RowFilter.regexFilter("(?i)" + Pattern.quote(query)));
         }
         if (selectedStatus != null && !selectedStatus.equals("Tất cả trạng thái")) {
-            filters.add(RowFilter.regexFilter("^" + Pattern.quote(selectedStatus) + "$", 5));
+            filters.add(RowFilter.regexFilter("^" + Pattern.quote(selectedStatus) + "$", 7));
         }
         tableSorter.setRowFilter(filters.isEmpty() ? null : RowFilter.andFilter(filters));
+    }
+
+    private void adjustColumnWidths() {
+        for (int columnIndex = 0; columnIndex < machineTable.getColumnCount(); columnIndex++) {
+            TableColumn column = machineTable.getColumnModel().getColumn(columnIndex);
+            Component header = machineTable.getTableHeader().getDefaultRenderer()
+                    .getTableCellRendererComponent(
+                            machineTable, column.getHeaderValue(), false, false, -1, columnIndex);
+            int preferredWidth = header.getPreferredSize().width;
+            for (int row = 0; row < machineTable.getRowCount(); row++) {
+                Component cell = machineTable.prepareRenderer(
+                        machineTable.getCellRenderer(row, columnIndex), row, columnIndex);
+                preferredWidth = Math.max(preferredWidth, cell.getPreferredSize().width);
+            }
+            int width = Math.max(72, Math.min(380, preferredWidth + 24));
+            column.setPreferredWidth(width);
+            column.setWidth(width);
+        }
     }
 
     private void refreshMetrics() {
@@ -299,7 +432,7 @@ public class DashBoard extends JPanel {
         int offline = 0;
         int locked = 0;
         for (int row = 0; row < machineTableModel.getRowCount(); row++) {
-            String status = machineTableModel.getValueAt(row, 5).toString();
+            String status = machineTableModel.getValueAt(row, 7).toString();
             if ("ONLINE".equals(status)) {
                 online++;
             } else if ("OFFLINE".equals(status)) {
@@ -314,6 +447,29 @@ public class DashBoard extends JPanel {
         lockedValue.setText(Integer.toString(locked));
     }
 
+    private void refreshUptimeDisplays() {
+        long now = System.currentTimeMillis();
+        for (int row = 0; row < machineTableModel.getRowCount(); row++) {
+            String machineCode = machineTableModel.getValueAt(row, 0).toString();
+            Long startedAt = uptimeStartByMachine.get(machineCode);
+            if (startedAt != null) {
+                machineTableModel.setValueAt(formatUptime(startedAt, now), row, 9);
+            }
+        }
+    }
+
+    private String formatDuration(long elapsedSeconds) {
+        long hours = elapsedSeconds / 3600;
+        long minutes = (elapsedSeconds % 3600) / 60;
+        long seconds = elapsedSeconds % 60;
+        return String.format(Locale.ROOT, "%02d:%02d:%02d", hours, minutes, seconds);
+    }
+
+    private String formatUptime(long startedAt, long now) {
+        long elapsedSeconds = Math.max(0, (now - startedAt) / 1000);
+        return formatDuration(elapsedSeconds);
+    }
+
     private void updateSelectionSummary() {
         int viewRow = machineTable.getSelectedRow();
         if (viewRow < 0) {
@@ -323,28 +479,142 @@ public class DashBoard extends JPanel {
         int row = machineTable.convertRowIndexToModel(viewRow);
         selectionSummary.setText("Đang chọn: " + machineTableModel.getValueAt(row, 0)
                 + "   •   " + machineTableModel.getValueAt(row, 2)
-                + "   •   Phòng " + machineTableModel.getValueAt(row, 3));
+            + "   •   " + machineTableModel.getValueAt(row, 3));
     }
 
     private void addMachine() {
-        String[] details = promptMachineDetails("Thêm máy", "", "");
+        if (savingMachine) {
+            return;
+        }
+        String[] details = promptNewMachine();
         if (details == null) {
             return;
         }
-        if (!validateMachineDetails(details)) {
+        if (!validateNewMachineDetails(details)) {
             return;
         }
         if (findMachineRow(details[0]) >= 0) {
             showError("Mã máy đã tồn tại.");
             return;
         }
-        machineTableModel.addRow(new Object[] {
-                details[0], details[1], "—", "Chưa phân phòng", "Trống", "OFFLINE", "—", "—", "Chưa kết nối" });
-        refreshMetrics();
-        applyFilters();
+
+        savingMachine = true;
+        feedbackLabel.setText("Đang lưu thiết bị...");
+        new SwingWorker<Response, Void>() {
+            @Override
+            protected Response doInBackground() throws IOException {
+                if (!serverConnection.isConnected() && !serverConnection.connect()) {
+                    throw new IOException("Không thể kết nối tới server.");
+                }
+                JSONObject data = new JSONObject()
+                        .put("machineCode", details[0])
+                        .put("hostname", details[1])
+                        .put("ipAddress", details[2])
+                        .put("os", details[3])
+                        .put("cpu", details[4])
+                        .put("gpu", details[5])
+                        .put("ram", details[6])
+                        .put("disk", details[7]);
+                Message request = new Message(UUID.randomUUID().toString(),
+                        CommandType.ADD_MACHINE, null, data);
+                return serverConnection.sendRequest(request);
+            }
+
+            @Override
+            protected void done() {
+                savingMachine = false;
+                try {
+                    Response response = get();
+                    if (response == null || !response.isSuccess()) {
+                        String message = response == null
+                                ? "Server không gửi phản hồi."
+                                : response.getMessage();
+                        feedbackLabel.setText("Không lưu được thiết bị.");
+                        showError(message);
+                        return;
+                    }
+                    feedbackLabel.setText(response.getMessage());
+                    loadMachines();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    feedbackLabel.setText("Đã hủy lưu thiết bị.");
+                } catch (ExecutionException e) {
+                    Throwable cause = e.getCause();
+                    String message = cause == null ? e.getMessage() : cause.getMessage();
+                    feedbackLabel.setText("Không lưu được thiết bị.");
+                    showError(message);
+                }
+            }
+        }.execute();
+    }
+
+    private String[] promptNewMachine() {
+        JTextField machineCodeField = new JTextField(16);
+        JTextField hostnameField = new JTextField(16);
+        JTextField ipAddressField = new JTextField(getCurrentIpAddress(), 16);
+        JTextField osField = new JTextField(16);
+        JTextField cpuField = new JTextField(16);
+        JTextField gpuField = new JTextField(16);
+        JTextField ramField = new JTextField(16);
+        JTextField diskField = new JTextField(16);
+
+        JPanel form = new JPanel(new GridLayout(0, 2, 8, 8));
+        form.add(new JLabel("Mã máy:"));
+        form.add(machineCodeField);
+        form.add(new JLabel("Tên máy / Host:"));
+        form.add(hostnameField);
+        form.add(new JLabel("Địa chỉ IP:"));
+        form.add(ipAddressField);
+        form.add(new JLabel("Hệ điều hành:"));
+        form.add(osField);
+        form.add(new JLabel("CPU:"));
+        form.add(cpuField);
+        form.add(new JLabel("GPU:"));
+        form.add(gpuField);
+        form.add(new JLabel("RAM:"));
+        form.add(ramField);
+        form.add(new JLabel("Ổ đĩa:"));
+        form.add(diskField);
+
+        int result = JOptionPane.showConfirmDialog(
+                this, form, "Thêm thiết bị", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+        if (result != JOptionPane.OK_OPTION) {
+            return null;
+        }
+        return new String[] {
+                machineCodeField.getText().trim(),
+                hostnameField.getText().trim(),
+                ipAddressField.getText().trim(),
+                osField.getText().trim(),
+                cpuField.getText().trim(),
+                gpuField.getText().trim(),
+                ramField.getText().trim(),
+                diskField.getText().trim()
+        };
+    }
+
+    private String getCurrentIpAddress() {
+        try {
+            return InetAddress.getLocalHost().getHostAddress();
+        } catch (IOException e) {
+            return "127.0.0.1";
+        }
+    }
+
+    private boolean validateNewMachineDetails(String[] details) {
+        for (String detail : details) {
+            if (detail.isBlank()) {
+                showError("Vui lòng nhập đầy đủ thông tin thiết bị.");
+                return false;
+            }
+        }
+        return true;
     }
 
     private void editMachine() {
+        if (savingMachine) {
+            return;
+        }
         int viewRow = machineTable.getSelectedRow();
         if (viewRow < 0) {
             showError("Vui lòng chọn máy cần sửa.");
@@ -355,7 +625,12 @@ public class DashBoard extends JPanel {
         String[] details = promptMachineDetails(
                 "Sửa máy",
                 machineTableModel.getValueAt(selectedRow, 0).toString(),
-                machineTableModel.getValueAt(selectedRow, 1).toString());
+                machineTableModel.getValueAt(selectedRow, 1).toString(),
+                machineTableModel.getValueAt(selectedRow, 3).toString(),
+                machineTableModel.getValueAt(selectedRow, 4).toString(),
+                machineTableModel.getValueAt(selectedRow, 5).toString(),
+                machineTableModel.getValueAt(selectedRow, 6).toString(),
+                machineTableModel.getValueAt(selectedRow, 8).toString());
         if (details == null) {
             return;
         }
@@ -368,9 +643,55 @@ public class DashBoard extends JPanel {
             return;
         }
 
-        machineTableModel.setValueAt(details[0], selectedRow, 0);
-        machineTableModel.setValueAt(details[1], selectedRow, 1);
-        applyFilters();
+        String originalMachineCode = machineTableModel.getValueAt(selectedRow, 0).toString();
+        savingMachine = true;
+        feedbackLabel.setText("Đang cập nhật thông tin máy...");
+        new SwingWorker<Response, Void>() {
+            @Override
+            protected Response doInBackground() throws IOException {
+                if (!serverConnection.isConnected() && !serverConnection.connect()) {
+                    throw new IOException("Không thể kết nối tới server.");
+                }
+                JSONObject data = new JSONObject()
+                        .put("originalMachineCode", originalMachineCode)
+                        .put("machineCode", details[0])
+                        .put("hostname", details[1])
+                        .put("os", details[2])
+                        .put("cpu", details[3])
+                        .put("gpu", details[4])
+                        .put("ram", details[5])
+                        .put("disk", details[6]);
+                Message request = new Message(UUID.randomUUID().toString(),
+                        CommandType.UPDATE_MACHINE, null, data);
+                return serverConnection.sendRequest(request);
+            }
+
+            @Override
+            protected void done() {
+                savingMachine = false;
+                try {
+                    Response response = get();
+                    if (response == null || !response.isSuccess()) {
+                        String message = response == null
+                                ? "Server không gửi phản hồi."
+                                : response.getMessage();
+                        feedbackLabel.setText("Không cập nhật được thông tin máy.");
+                        showError(message);
+                        return;
+                    }
+                    feedbackLabel.setText(response.getMessage());
+                    loadMachines();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    feedbackLabel.setText("Đã hủy cập nhật thông tin máy.");
+                } catch (ExecutionException e) {
+                    Throwable cause = e.getCause();
+                    String message = cause == null ? e.getMessage() : cause.getMessage();
+                    feedbackLabel.setText("Không cập nhật được thông tin máy.");
+                    showError(message);
+                }
+            }
+        }.execute();
     }
 
     private void deleteMachine() {
@@ -393,31 +714,97 @@ public class DashBoard extends JPanel {
     }
 
     private void setMachineOpen(boolean open) {
+        if (updatingMachineStatus) {
+            return;
+        }
         int viewRow = machineTable.getSelectedRow();
         if (viewRow < 0) {
             showError("Vui lòng chọn máy cần thay đổi trạng thái.");
             return;
         }
         int selectedRow = machineTable.convertRowIndexToModel(viewRow);
-        machineTableModel.setValueAt(open ? "ONLINE" : "OFFLINE", selectedRow, 5);
-        refreshMetrics();
+        String machineCode = machineTableModel.getValueAt(selectedRow, 0).toString();
+        updatingMachineStatus = true;
+        feedbackLabel.setText(open ? "Đang bật máy..." : "Đang tắt máy...");
+
+        new SwingWorker<Response, Void>() {
+            @Override
+            protected Response doInBackground() throws IOException {
+                if (!serverConnection.isConnected() && !serverConnection.connect()) {
+                    throw new IOException("Không thể kết nối tới server.");
+                }
+                CommandType command = open ? CommandType.OPEN_MACHINE : CommandType.CLOSE_MACHINE;
+                Message request = new Message(UUID.randomUUID().toString(), command, null, machineCode);
+                return serverConnection.sendRequest(request);
+            }
+
+            @Override
+            protected void done() {
+                updatingMachineStatus = false;
+                try {
+                    Response response = get();
+                    if (response == null || !response.isSuccess()) {
+                        String message = response == null
+                                ? "Server không gửi phản hồi."
+                                : response.getMessage();
+                        feedbackLabel.setText("Không cập nhật được trạng thái máy.");
+                        showError(message);
+                        return;
+                    }
+                    feedbackLabel.setText(response.getMessage());
+                    loadMachines();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    feedbackLabel.setText("Đã hủy cập nhật trạng thái máy.");
+                } catch (ExecutionException e) {
+                    Throwable cause = e.getCause();
+                    String message = cause == null ? e.getMessage() : cause.getMessage();
+                    feedbackLabel.setText("Không cập nhật được trạng thái máy.");
+                    showError(message);
+                }
+            }
+        }.execute();
     }
 
-    private String[] promptMachineDetails(String title, String machineId, String machineName) {
+    private String[] promptMachineDetails(String title, String machineId, String machineName,
+            String os, String cpu, String gpu, String ram, String disk) {
         JTextField machineIdField = new JTextField(machineId, 16);
         JTextField machineNameField = new JTextField(machineName, 16);
+        JTextField osField = new JTextField(os, 16);
+        JTextField cpuField = new JTextField(cpu, 16);
+        JTextField gpuField = new JTextField(gpu, 16);
+        JTextField ramField = new JTextField(ram, 16);
+        JTextField diskField = new JTextField(disk, 16);
         JPanel form = new JPanel(new GridLayout(0, 2, 8, 8));
         form.add(new JLabel("Mã máy:"));
         form.add(machineIdField);
         form.add(new JLabel("Tên máy:"));
         form.add(machineNameField);
+        form.add(new JLabel("Hệ điều hành:"));
+        form.add(osField);
+        form.add(new JLabel("CPU:"));
+        form.add(cpuField);
+        form.add(new JLabel("GPU:"));
+        form.add(gpuField);
+        form.add(new JLabel("RAM:"));
+        form.add(ramField);
+        form.add(new JLabel("Bộ nhớ / Ổ đĩa:"));
+        form.add(diskField);
 
         int result = JOptionPane.showConfirmDialog(
                 this, form, title, JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
         if (result != JOptionPane.OK_OPTION) {
             return null;
         }
-        return new String[] { machineIdField.getText().trim(), machineNameField.getText().trim() };
+        return new String[] {
+            machineIdField.getText().trim(),
+            machineNameField.getText().trim(),
+            osField.getText().trim(),
+            cpuField.getText().trim(),
+            gpuField.getText().trim(),
+            ramField.getText().trim(),
+            diskField.getText().trim()
+        };
     }
 
     private boolean validateMachineDetails(String[] details) {
