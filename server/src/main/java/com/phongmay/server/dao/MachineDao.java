@@ -73,7 +73,7 @@ public class MachineDao {
                     return false;
             }
     }
-    public int chuyenTrangThai(int timeout){
+    public int changeStatus(int timeout){
         String sql="""
               UPDATE machines SET status='OFFLINE' WHERE status='ONLINE' AND last_seen<?
                 """;
