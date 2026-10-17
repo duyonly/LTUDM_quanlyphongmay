@@ -3,21 +3,23 @@ package com.phongmay.server.dao;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.SQLException;
+
 
 import com.phongmay.server.config.DatabaseConfig;
 
 public class UserDao {
-
-	public boolean authenticate(String username, String password) throws SQLException {
-		String sql = "SELECT 1 FROM users WHERE username = ? AND password_hash = ?";
-		try (Connection connection = DatabaseConfig.getConnection();
-				PreparedStatement statement = connection.prepareStatement(sql)) {
-			statement.setString(1, username);
-			statement.setString(2, password);
-			try (ResultSet resultSet = statement.executeQuery()) {
-				return resultSet.next();
-			}
-		}
-	}
+    public boolean checkLogin(String username,String password){
+        String sql="SELECT 1 FROM users where LOWER(username)= LOWER(?) and password_hash=?";
+        try(Connection conn=DatabaseConfig.getConnection();
+          PreparedStatement ps=conn.prepareStatement(sql)) {
+            ps.setString(1, username);
+            ps.setString(2, password);
+            try(ResultSet rs=ps.executeQuery()){
+                return  rs.next();
+            }
+        } catch (Exception e) {
+           e.printStackTrace();
+           return false;
+        }
+    }
 }
