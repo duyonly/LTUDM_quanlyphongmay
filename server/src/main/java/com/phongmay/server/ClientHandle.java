@@ -90,6 +90,8 @@ public class ClientHandle implements Runnable {
                         if (message.getData() instanceof JSONObject data) {
                             username = data.optString("username", "");
                             password = data.optString("password", "");
+                            System.out.println("LOGIN data type=" + (message.getData() == null ? "null" : message.getData().getClass())
+        + " username='" + username + "' password.length=" + password.length());
                         }
 
                         boolean ok = userDao.checkLogin(username, password);
@@ -99,6 +101,7 @@ public class ClientHandle implements Runnable {
                                 ok,
                                 ok ? "Đăng nhập thành công" : "Tên đăng nhập hoặc mật khẩu không đúng",
                                 null);
+                                
                         writer.println(JsonUtil.responseToJson(res));
                         break;
                     }

@@ -36,7 +36,7 @@ public class ServerApplication {
             while (true) {
                 try{
                     Thread.sleep(5000);
-                    int n=machineDao.chuyenTrangThai(15);
+                    int n=machineDao.changeStatus(15);
                     if(n>0){
                         System.out.println("Đã chuyển " + n + " máy sang OFFLINE");
                     }
