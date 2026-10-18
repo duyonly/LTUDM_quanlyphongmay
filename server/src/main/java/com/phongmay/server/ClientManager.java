@@ -60,7 +60,7 @@ import com.phongmay.common.Response;
             for(String requestId : pendingRequest.keySet()){
                 ClientHandle adminCho=pendingRequest.get(requestId);
                 if(adminCho==admin){
-                    pendingRequest.remove(admin,adminCho);
+                    pendingRequest.values().removeIf(h -> h == admin);
                 }
             }
         }

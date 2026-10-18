@@ -25,6 +25,7 @@ public class ClientHandle implements Runnable {
     private final MachineDao machineDao = new MachineDao();
     private  final UserDao userDao=new UserDao();
     private String currentMachineId;
+    private boolean authenticated=false;
 
     public ClientHandle(Socket socket, ClientManager clientManager) {
         this.socket = socket;
@@ -47,8 +48,6 @@ public class ClientHandle implements Runnable {
                 if(obj.has("success")){
                     Response response=JsonUtil.jsonToResponse(json);
                     if(currentMachineId!=null){
-                        System.out.println("Nhận kết quả từ máy: " + currentMachineId);
-                        System.out.println("Response: " + json);
                         clientManager.completeRequest(response);
                         
                     }
@@ -90,12 +89,13 @@ public class ClientHandle implements Runnable {
                         if (message.getData() instanceof JSONObject data) {
                             username = data.optString("username", "");
                             password = data.optString("password", "");
-                            System.out.println("LOGIN data type=" + (message.getData() == null ? "null" : message.getData().getClass())
-        + " username='" + username + "' password.length=" + password.length());
+                           
                         }
 
                         boolean ok = userDao.checkLogin(username, password);
-
+                        if(ok){
+                            authenticated=true;
+                        }
                         Response res = new Response(
                                 message.getRequestId(),
                                 ok,
@@ -117,6 +117,11 @@ public class ClientHandle implements Runnable {
                     }
 
                     case GET_CLIENTS: {
+                        if (!authenticated) {
+                            writer.println(JsonUtil.responseToJson(
+                                    new Response(message.getRequestId(), false, "Chưa đăng nhập", null)));
+                            break;
+                        }
                         System.out.println("Admin yêu cầu danh sách máy");
                         List<MachineStatus> machines=machineDao.getAllMachines();
                         System.out.println("Số máy lấy được: " + machines.size());
@@ -133,6 +138,12 @@ public class ClientHandle implements Runnable {
                     case GET_PROCESSES:
                     case KILL_PROCESS:
                     case SCREENSHOT: {
+                        //kiểm tra đăng nhập
+                        if (!authenticated) {
+                            writer.println(JsonUtil.responseToJson(
+                                    new Response(message.getRequestId(), false, "Chưa đăng nhập", null)));
+                            break;
+                        }
                         //không cho machines gửi lệnh điều khiển
                         if(currentMachineId!=null){
                             Response response=new Response(message.getRequestId(),false, 
