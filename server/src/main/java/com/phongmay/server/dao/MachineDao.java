@@ -8,7 +8,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-
+import com.phongmay.common.MachineSpecs;
 import com.phongmay.common.MachineStatus;
 import com.phongmay.server.config.DatabaseConfig;
 
@@ -110,4 +110,78 @@ public class MachineDao {
                 }
                 return  list;
     }
+    public boolean saveMachineSpecs(String machineCode ,MachineSpecs specs){
+        if(specs==null){
+            System.out.println("Không có cấu hình phần cứng cho máy " + machineCode);
+        return false;
+        }
+        String findSql="""
+                SELECT id
+                from machines
+                where machine_code=?
+                """;
+                String updateSql="""
+            UPDATE machine_specs
+            SET cpu=?, ram=?,gpu=?,disk=?
+            where machine_id=?
+            """;
+    String insertSql="""
+            INSERT INTO machine_specs (machine_id,cpu,ram,gpu,disk)
+            VALUES (?,?,?,?,?)
+            """;
+            try (Connection con=DatabaseConfig.getConnection()){
+                con.setAutoCommit(false);
+                try {
+                    int machineDbId;
+                    try (PreparedStatement ps =con.prepareStatement(findSql)){
+                        ps.setString(1, machineCode);
+                        try(ResultSet rs=ps.executeQuery()) {
+                            if(!rs.next()){
+                                System.out.println("không tim thấy máy"+machineCode);
+                            }
+                            machineDbId=rs.getInt("id");
+                        } 
+                        
+                    
+                        
+                } 
+                int update;
+                try(PreparedStatement ps=con.prepareStatement(updateSql)){
+                    ps.setString(1, specs.getCpu());
+                    ps.setString(2, specs.getRam());
+                    ps.setString(3, specs.getGpu());
+                    ps.setString(4, specs.getDisk());
+                    ps.setInt(5, machineDbId);
+
+                    update=ps.executeUpdate();
+                }
+                if(update==0){
+                    try(PreparedStatement ps=con.prepareStatement(insertSql)){
+                        ps.setInt(1, machineDbId);
+                        ps.setString(2, specs.getCpu());
+                        ps.setString(3, specs.getRam());
+                        ps.setString(4, specs.getGpu());
+                        ps.setString(5, specs.getDisk());
+                        ps.executeUpdate();
+                    }
+                }
+                con.commit();
+                System.out.println("Đã lưu cấu hình phần cứng cho máy " + machineCode);
+                return  true;}
+                
+                catch (Exception e) {
+                    con.rollback();
+                    throw e;
+                }
+                finally{
+                    con.setAutoCommit(true);
+                }
+            } catch (Exception e) {
+                System.err.println("Không thể lưu cấu hình máy " + machineCode);
+            e.printStackTrace();
+            return false;
+            }
+    }
+    
+
 }

@@ -53,6 +53,15 @@ public class JsonUtil {
     info.setRamUsage(json.getDouble("ramUsage"));
     info.setDiskUsage(json.getDouble("diskUsage"));
     info.setOnline(json.getBoolean("online"));
+    JSONObject specsJson=json.optJSONObject("specs");
+    if(specsJson!=null){
+        MachineSpecs specs=new MachineSpecs();
+        specs.setCpu(specsJson.optString("cpu",null));
+        specs.setRam(specsJson.optString("ram",null));
+        specs.setGpu(specsJson.optString("gpu",null));
+        specs.setDisk(specsJson.optString("disk",null));
+        info.setSpecs(specs);
+    }
     return info;
     }
 

@@ -60,48 +60,50 @@ public class ClientHandle implements Runnable {
                 switch (message.getCommand()) {
 
                     case CONNECT: {
-                        MachineInfo info = JsonUtil.jsonToMachineInfo(message.getData());
-                        String machineId = info.getMachineId();
-
-                        boolean success = machineDao.connectMachine(
-                                machineId,
-                                info.getMachineName(),
-                                info.getIpAddress(),
-                                info.getOs());
-
-                        Response res;
-                        if (success) {
-                            currentMachineId = machineId;
-                            clientManager.addClient(machineId, this);
-                            System.out.println("Máy " + machineId + " đã đăng ký");
-                            res = new Response(message.getRequestId(), true, "connect thành công", machineId);
-                        } else {
-                            res = new Response(message.getRequestId(), false, "Không thể đăng ký máy", null);
+                       MachineInfo info=JsonUtil.jsonToMachineInfo(message.getData());
+                       String machineId=info.getMachineId();
+                       boolean success=machineDao.connectMachine(machineId,
+                      info.getMachineName(), info.getIpAddress(), info.getOs());
+                       Response res;
+                       if(success){
+                        currentMachineId=machineId;
+                        clientManager.addClient(machineId, this);
+                        System.out.println("Máy " + machineId + " đã đăng ký");
+                        boolean specsSava=false;
+                        if(info.getSpecs()!=null){
+                            specsSava=machineDao.saveMachineSpecs(machineId, info.getSpecs());
                         }
-                        writer.println(JsonUtil.responseToJson(res));
+                        else{
+                            System.err.println("Máy " + machineId + " chưa gửi cấu hình phần cứng ");
+
+                        }
+                        //phản hồi kết quả 
+                        String responseMessage=specsSava? 
+                        "Kết nối thành công, đã lưu cấu hình phần cứng"
+                        : "Kết nối thành công nhưng chưa lưu được cấu hình phần cứng";
+        
+                        res = new Response(message.getRequestId(), true, responseMessage, machineId);
+                       }else {
+                        res = new Response(message.getRequestId(), false, "Không thể đăng ký máy", null);
+                    }
+                    writer.println(JsonUtil.responseToJson(res));
                         break;
                     }
 
                     case LOGIN: {
-                        String username = "";
-                        String password = "";
+                        String username=" ";
+                        String password=" ";
+                        if(message.getData() instanceof JSONObject data){
+                            username=data.optString("username"," ");
+                            password=data.optString("password", " ");
 
-                        if (message.getData() instanceof JSONObject data) {
-                            username = data.optString("username", "");
-                            password = data.optString("password", "");
-                           
                         }
-
-                        boolean ok = userDao.checkLogin(username, password);
+                        boolean ok=userDao.checkLogin(username, password);
                         if(ok){
                             authenticated=true;
                         }
-                        Response res = new Response(
-                                message.getRequestId(),
-                                ok,
-                                ok ? "Đăng nhập thành công" : "Tên đăng nhập hoặc mật khẩu không đúng",
-                                null);
-                                
+                        Response res=new Response(message.getRequestId(), ok,  ok ? "Đăng nhập thành công" : "Tên đăng nhập hoặc mật khẩu không đúng",
+                        null);
                         writer.println(JsonUtil.responseToJson(res));
                         break;
                     }
@@ -125,6 +127,11 @@ public class ClientHandle implements Runnable {
                         System.out.println("Admin yêu cầu danh sách máy");
                         List<MachineStatus> machines=machineDao.getAllMachines();
                         System.out.println("Số máy lấy được: " + machines.size());
+                        System.out.println("Số máy lấy từ DB: " + machines.size());
+
+for (MachineStatus machine : machines) {
+    System.out.println(machine);
+}
                         Response res = new Response(message.getRequestId(), true,
                                 "Danh sách máy đang kết nối", machines);
 

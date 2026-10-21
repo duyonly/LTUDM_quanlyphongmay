@@ -7,21 +7,25 @@ public class MachineInfo {
     private String os;
     private double cpuUsage;
     private double ramUsage;
+    private double gpuUsage;
     private double diskUsage;
     private boolean online;
-
+    private MachineSpecs specs;
     public MachineInfo() {
     }
 
     public MachineInfo(String machineId, String machineName, String ipAddress, String os,
-                       double cpuUsage, double ramUsage, boolean online) {
+                       double cpuUsage, double ramUsage,double gpuUsage,double diskUsage, boolean online,MachineSpecs specs) {
         this.machineId = machineId;
         this.machineName = machineName;
         this.ipAddress = ipAddress;
         this.os = os;
         this.cpuUsage = cpuUsage;
         this.ramUsage = ramUsage;
+        this.gpuUsage=gpuUsage;
+        this.diskUsage = diskUsage;
         this.online = online;
+        this.specs=specs;
     }
 
     public boolean isOnline() { return online; }
@@ -40,4 +44,13 @@ public class MachineInfo {
     public void setRamUsage(double ramUsage) { this.ramUsage = ramUsage; }
     public double getDiskUsage() { return diskUsage; }
     public void setDiskUsage(double diskUsage) { this.diskUsage = diskUsage; }
+    public MachineSpecs getSpecs() {return specs; }
+    public void setSpecs(MachineSpecs specs) {this.specs = specs;}
+    public double getGpuUsage() {
+        return gpuUsage;
+    }
+
+    public void setGpuUsage(double gpuUsage) {
+        this.gpuUsage = gpuUsage;
+    }
 }

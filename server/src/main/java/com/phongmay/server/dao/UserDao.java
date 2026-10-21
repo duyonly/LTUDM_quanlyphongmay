@@ -8,26 +8,22 @@ import java.sql.ResultSet;
 import com.phongmay.server.config.DatabaseConfig;
 
 public class UserDao {
-    public boolean  checkLogin(String username,String password){
-        String sql="SELECT password_hash,role FROM users where LOWER(username)= LOWER(?)";
-        try(Connection conn=DatabaseConfig.getConnection();
-          PreparedStatement ps=conn.prepareStatement(sql)) {
-            ps.setString(1, username);
-            
-            try(ResultSet rs=ps.executeQuery()){
-                if (!rs.next()) {
-					System.out.println("LOGIN: không tìm thấy user '" + username + "'");	
-                    return false;
-                }
+   public boolean checkLogin(String username,String password){
+    String sql="""
+            SELECT password_hash FROM users WHERE LOWER(username)=LOWER(?)
+            """;
+            try (Connection con=DatabaseConfig.getConnection();
+        PreparedStatement ps=con.prepareStatement(sql)){
+                ps.setString(1, username);
+               try(ResultSet rs=ps.executeQuery()){
+                if(!rs.next()) return false;
                 String hash=rs.getString("password_hash");
-				if(!org.mindrot.jbcrypt.BCrypt.checkpw(password, hash)) return false;
-				System.out.println("LOGIN: hash length=" + (hash == null ? "null" : hash.length())
-                    + ", prefix=" + (hash == null ? "" : hash.substring(0, Math.min(7, hash.length()))));
-                return true;
+                if(!org.mindrot.jbcrypt.BCrypt.checkpw(password, hash)) return false;
+               }
+            } catch (Exception e) {
+                System.out.println(e.getMessage());
+                return false;
             }
-        } catch (Exception e) {
-           e.printStackTrace();
-           return false;
-        }
-    }
+            return true;
+   }
 }
