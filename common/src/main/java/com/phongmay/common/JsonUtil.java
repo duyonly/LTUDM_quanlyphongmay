@@ -51,6 +51,7 @@ public class JsonUtil {
     info.setOs(json.getString("os"));
     info.setCpuUsage(json.getDouble("cpuUsage"));
     info.setRamUsage(json.getDouble("ramUsage"));
+    info.setGpuUsage(json.optDouble("gpuUsage", 0.0));
     info.setDiskUsage(json.getDouble("diskUsage"));
     info.setOnline(json.getBoolean("online"));
     JSONObject specsJson=json.optJSONObject("specs");

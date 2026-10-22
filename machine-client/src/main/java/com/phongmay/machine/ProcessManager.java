@@ -28,10 +28,38 @@ public class ProcessManager {
 
     /** @return null nếu OK, ngược lại là thông báo lỗi */
     public String kill(long pid) {
-        if (pid <= 0) return "Invalid PID";
-        if (pid == ProcessHandle.current().pid()) return "Cannot kill the Machine Client itself";
-        return ProcessHandle.of(pid)
-                .map(h -> h.destroyForcibly() ? (String) null : "No permission to kill PID " + pid)
-                .orElse("PID not found: " + pid);
+    if (pid <= 0) {
+        return "Invalid PID";
     }
+
+    if (pid == ProcessHandle.current().pid()) {
+        return "Cannot kill the Machine Client itself";
+    }
+
+    try {
+        ProcessHandle handle = ProcessHandle.of(pid).orElse(null);
+
+        if (handle == null) {
+            return "PID not found: " + pid;
+        }
+
+        Process process = new ProcessBuilder(
+                "taskkill",
+                "/PID", String.valueOf(pid),
+                "/F",
+                "/T"
+        ).start();
+
+        int exitCode = process.waitFor();
+
+        if (exitCode == 0) {
+            return null;
+        }
+
+        return "Failed to kill PID " + pid + ", exit code: " + exitCode;
+
+    } catch (Exception e) {
+        return "Failed to kill PID " + pid + ": " + e.getMessage();
+    }
+}
 }
