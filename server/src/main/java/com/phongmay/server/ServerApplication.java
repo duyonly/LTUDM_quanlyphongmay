@@ -49,7 +49,6 @@ public class ServerApplication {
         thread.start();
     }
     public static  void main(String[] args){
-        
         DatabaseConfig.testConnection();
         int port=12345;
         ClientManager clientManager=new ClientManager();
