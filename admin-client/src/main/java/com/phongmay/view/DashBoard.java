@@ -196,10 +196,16 @@ public class DashBoard extends JPanel {
         closeButton.addActionListener(event -> setMachineOpen(false));
         JButton refreshButton = createButton("Làm mới", Color.WHITE, INK);
         refreshButton.addActionListener(event -> loadMachines());
+        JButton clientsButton = createButton("Máy đang online", Color.WHITE, GREEN);
+        clientsButton.addActionListener(event -> loadConnectedClients());
+        JButton systemInfoButton = createButton("Thông tin hệ thống", Color.WHITE, INK);
+        systemInfoButton.addActionListener(event -> loadSelectedMachineSystemInfo());
 
         JPanel actionPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 7, 0));
         actionPanel.setOpaque(false);
         actionPanel.add(refreshButton);
+        actionPanel.add(clientsButton);
+        actionPanel.add(systemInfoButton);
         actionPanel.add(openButton);
         actionPanel.add(closeButton);
         actionPanel.add(editButton);
@@ -391,6 +397,126 @@ public class DashBoard extends JPanel {
                     Throwable cause = e.getCause();
                     feedbackLabel.setText("Không tải được dữ liệu: "
                             + (cause == null ? e.getMessage() : cause.getMessage()));
+                }
+            }
+        }.execute();
+    }
+
+    private void loadConnectedClients() {
+        feedbackLabel.setText("Đang lấy danh sách máy đang kết nối...");
+        new SwingWorker<JSONArray, Void>() {
+            @Override
+            protected JSONArray doInBackground() throws IOException {
+                if (!serverConnection.isConnected() && !serverConnection.connect()) {
+                    throw new IOException("Không thể kết nối tới server.");
+                }
+                Message request = new Message(
+                        UUID.randomUUID().toString(), CommandType.GET_CLIENTS, null, null);
+                Response response = serverConnection.sendRequest(request);
+                if (response == null || !response.isSuccess()) {
+                    throw new IOException(response == null
+                            ? "Server không gửi phản hồi."
+                            : response.getMessage());
+                }
+                if (response.getData() instanceof JSONArray clients) {
+                    return clients;
+                }
+                throw new IOException("Danh sách máy đang kết nối không hợp lệ.");
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    JSONArray clients = get();
+                    StringBuilder message = new StringBuilder();
+                    for (int index = 0; index < clients.length(); index++) {
+                        if (index > 0) {
+                            message.append('\n');
+                        }
+                        Object client = clients.get(index);
+                        if (client instanceof JSONObject machine) {
+                            message.append(machine.optString("machineId",
+                                    machine.optString("machine_code", "Không rõ mã")))
+                                    .append(" - ")
+                                    .append(machine.optString("machineName",
+                                            machine.optString("hostname", "Không rõ tên")))
+                                    .append(" (")
+                                    .append(machine.optString("status", "UNKNOWN"))
+                                    .append(')');
+                        } else {
+                            message.append(client);
+                        }
+                    }
+                    feedbackLabel.setText("Có " + clients.length() + " máy đang kết nối");
+                    JOptionPane.showMessageDialog(
+                            DashBoard.this,
+                            clients.isEmpty() ? "Hiện không có máy nào đang kết nối." : message.toString(),
+                            "Máy đang online",
+                            JOptionPane.INFORMATION_MESSAGE);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    feedbackLabel.setText("Đã hủy tải danh sách máy đang kết nối.");
+                } catch (ExecutionException e) {
+                    Throwable cause = e.getCause();
+                    String message = cause == null ? e.getMessage() : cause.getMessage();
+                    feedbackLabel.setText("Không tải được danh sách máy đang kết nối.");
+                    showError(message);
+                }
+            }
+        }.execute();
+    }
+
+    private void loadSelectedMachineSystemInfo() {
+        int viewRow = machineTable.getSelectedRow();
+        if (viewRow < 0) {
+            showError("Vui lòng chọn một máy.");
+            return;
+        }
+        int row = machineTable.convertRowIndexToModel(viewRow);
+        String machineId = machineTableModel.getValueAt(row, 0).toString();
+        feedbackLabel.setText("Đang lấy thông tin hệ thống của " + machineId + "...");
+
+        new SwingWorker<Response, Void>() {
+            @Override
+            protected Response doInBackground() throws IOException {
+                if (!serverConnection.isConnected() && !serverConnection.connect()) {
+                    throw new IOException("Không thể kết nối tới server.");
+                }
+                Message request = new Message(
+                        UUID.randomUUID().toString(), CommandType.GET_SYSTEM_INFO, machineId, null);
+                return serverConnection.sendRequest(request);
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    Response response = get();
+                    if (response == null || !response.isSuccess()) {
+                        throw new IOException(response == null
+                                ? "Server không gửi phản hồi."
+                                : response.getMessage());
+                    }
+                    if (!(response.getData() instanceof JSONObject info)) {
+                        throw new IOException("Thông tin máy server trả về không hợp lệ.");
+                    }
+                    String details = "Mã máy: " + info.optString("machineId", machineId)
+                            + "\nTên máy: " + info.optString("machineName", "—")
+                            + "\nĐịa chỉ IP: " + info.optString("ipAddress", "—")
+                            + "\nHệ điều hành: " + info.optString("os", "—")
+                            + "\nCPU: " + info.optDouble("cpuUsage", 0) + "%"
+                            + "\nRAM: " + info.optDouble("ramUsage", 0) + "%"
+                            + "\nỔ đĩa: " + info.optDouble("diskUsage", 0) + "%";
+                    feedbackLabel.setText("Đã nhận thông tin hệ thống của " + machineId);
+                    JOptionPane.showMessageDialog(
+                            DashBoard.this, details, "Thông tin hệ thống", JOptionPane.INFORMATION_MESSAGE);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    feedbackLabel.setText("Đã hủy lấy thông tin hệ thống.");
+                } catch (ExecutionException | IOException e) {
+                    Throwable cause = e instanceof ExecutionException && e.getCause() != null
+                            ? e.getCause() : e;
+                    feedbackLabel.setText("Không lấy được thông tin hệ thống.");
+                    showError(cause.getMessage());
                 }
             }
         }.execute();
